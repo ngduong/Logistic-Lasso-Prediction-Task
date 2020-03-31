@@ -1,0 +1,190 @@
+---
+title: "Logistic-LASSO Breast Cancer Classification Task"
+author: "Ngoc Duong - nqd2000"
+date: "3/25/2020"
+output: html_document
+editor_options: 
+  chunk_output_type: console
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+
+require(tidyverse)
+require(survival)
+require(quantreg)
+require(glmnet)
+require(MASS)
+require(pROC)
+library(corrplot)
+library(corrr)
+
+set.seed(2019)
+```
+
+
+Data import and cleaning 
+
+```{r}
+breast_cancer_data = read.csv("./breast-cancer-1.csv")
+
+bcdf = breast_cancer_data %>% 
+  mutate(diagnosis = ifelse(diagnosis == "M",1,0)) %>% 
+  dplyr::select(diagnosis, everything()) %>% 
+  dplyr::select(-id, -X)
+```
+
+Standardize design matrix (because although logistic is scale-invariant, LASSO is not, this is to ensure comparability of estimates by these different models)
+
+```{r}
+pred_names = bcdf %>% dplyr::select(-diagnosis) %>% names() %>% as.vector()
+bcdf_x = NULL
+
+for (i in pred_names) {
+col = (bcdf[,i] - mean(bcdf[,i]))/sd(bcdf[,i])
+bcdf_x = cbind(bcdf_x , col)
+}
+
+colnames(bcdf_x) <- c(pred_names)
+
+bcdf_fin = cbind(bcdf[1], bcdf_x)
+```
+
+Try to git a logistic regression model using glm package. The warning messages show algorithm did not converge, potentially due to multicollinearity.
+
+```{r}
+log.mod = glm(diagnosis~., data = bcdf_fin, family = "binomial")
+summary(log.mod)
+```
+
+Investigate multicollinearity problem
+
+```{r}
+bcdf_fin %>% dplyr::select(-diagnosis) %>%  #filter only numeric variables 
+  cor() %>%   
+  #compute correlation matrix
+  corrplot(method = "circle",         #represent correlation in "circle", size = magnitude 
+           type = "upper", 
+           diag=FALSE
+           )
+#We can see that there are some very strong correlations between certain variables
+```
+
+
+Find correlation pairs that are above 0.6 to leave out of the dataset
+
+```{r}
+#obtain list of variables that are correlated with one another whose correlation is at least 0.85
+a = bcdf_x %>% 
+    correlate() %>% 
+    stretch() %>% 
+    arrange(desc(r)) %>% 
+    filter(r > 0.85) %>% 
+    slice(which(row_number() %% 2 == 0)) %>% 
+    pivot_longer(x:y) %>% dplyr::select(-r,-name) %>% distinct(value) 
+
+#bcdf_x = as.data.frame(bcdf_x)[a$value]
+
+bcdf_x = as_tibble(bcdf_x) %>% dplyr::select(-perimeter_mean, -radius_mean, -perimeter_worst, -radius_worst, -area_mean, -area_worst, -perimeter_se, -radius_se, -area_se, -concave.points_mean, -concavity_mean, -texture_worst, -texture_mean, -concave.points_worst, -concavity_worst, -compactness_worst, -compactness_mean)
+```
+
+
+### Task 1
+\item Build a logistic model to classify the images into  malignant/benign, and write down your likelihood function, its gradient and Hessian matrix.  
+
+```{r}
+# Function to compute the loglikelihood, the gradient, and the Hessian matrix for data dat evaluated at the parameter value betavec
+## dat    - A list with components
+#  x      - vector of explanatory variables
+#  y      - vector of corresponding (binary) response variables
+# betavec - [beta_0, beta_1, ..., beta_n] - the vector of parameter
+#             values at which to evaluate these quantities
+
+## Returns a list with the following components evaluated at beta
+#  loglik - (scalar) the log likelihood
+#  grad   - (vector of length 2) gradient
+#  Hess   - (2 x 2 matrix) Hessian#
+```
+
+Function to return log-likelihood, gradient, and Hessian matrix of logistic regression
+
+```{r}
+logisticstuff <- function(y, x, betavec) {
+  u <- x %*% betavec
+  expu <- exp(u)
+  loglik.ind = NULL
+  #for(i in 1:length(y)) {
+    #loglik.ind[i] = y[i]*u[i] - log(1+ expu)
+    #}
+  #loglik = sum(loglik.ind)
+  loglik = t(u) %*% y - sum((log(1+expu)))
+  # Log-likelihood at betavec
+  
+  p <- expu / (1 + expu)
+  # P(Y_i=1|x_i)
+  
+  #grad = NULL
+  #for(i in 1:length(betavec)){
+    #grad[i] = sum(t(x[,i])%*%(dat$y - p))
+  #}
+  grad = t(x) %*% (y-p)
+   #gradient at betavec
+  
+    # Hessian at betavec
+  hess <- -t(x) %*% diag(as.vector(p*(1-p))) %*% x
+  return(list(loglik = loglik, grad = grad, Hess = hess))
+}
+```
+
+Newton-Raphson with gradient ascent and step-halving
+
+```{r}
+NewtonRaphson <- function(y, x, func, start, tol=1e-10, maxiter = 200) {
+  i <- 0
+  cur <- start
+  stuff <- func(y, x , cur)
+  res <- c(0, stuff$loglik, cur)
+  prevloglik <- -Inf
+  while(i < maxiter && abs(stuff$loglik - prevloglik) > tol) {
+    i <- i + 1
+    prevloglik <- stuff$loglik
+    prev <- cur
+    grad <- stuff$grad
+    hess <- stuff$Hess
+    
+    #gradient descent 
+    if(t(grad) %*% hess %*% grad > 0){#positive definite matrix
+    inv.hess = 
+      solve(hess - (max(diag(hess))+100)*diag(nrow(hess)))} #make positive definite matrix negative definite
+    else 
+    {inv.hess <- solve(hess)}
+    
+    cur <- prev - inv.hess%*%grad
+    stuff <- func(y, x, cur)
+    
+    #step-halving
+    step = 0
+    while (prevloglik > stuff$loglik){#moving too far -> halve step
+    step = step + 1 
+    cur <- prev - (1/2)^step * inv.hess%*%grad
+    stuff <- func(y, x, cur)
+    }
+  res <- rbind(res, c(i, stuff$loglik, cur))
+  }
+  return(res)
+  }
+```
+
+Test on dataset 
+```{r}
+NewtonRaphson(y = bcdf_fin$diagnosis, as.matrix(bcdf_x), logisticstuff, start = rep(1, ncol(bcdf_x)))
+
+#start = rep(1, ncol(bcdf_x))
+#as.matrix(bcdf_x) %*%rep(1, ncol(bcdf_x))
+
+#t(as.matrix(bcdf_x)) %*% as.matrix(bcdf_fin[,1])
+```
+
+
+
+
