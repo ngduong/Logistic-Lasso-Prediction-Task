@@ -19,7 +19,7 @@ require(pROC)
 library(corrplot)
 library(corrr)
 
-set.seed(2019)
+set.seed(2020)
 ```
 
 
@@ -85,7 +85,11 @@ a = bcdf_x %>%
 
 #bcdf_x = as.data.frame(bcdf_x)[a$value]
 
-bcdf_x = as_tibble(bcdf_x) %>% dplyr::select(-perimeter_mean, -radius_mean, -perimeter_worst, -radius_worst, -area_mean, -area_worst, -perimeter_se, -radius_se, -area_se, -concave.points_mean, -concavity_mean, -texture_worst, -texture_mean, -concave.points_worst, -concavity_worst, -compactness_worst, -compactness_mean)
+new_bcdf = as_tibble(bcdf_fin) %>% dplyr::select(-perimeter_mean, -radius_mean, -perimeter_worst, -radius_worst, -area_mean, -area_worst, -perimeter_se, -radius_se, -area_se, -concave.points_mean, -concavity_mean, -texture_worst, -texture_mean, -concave.points_worst, -concavity_worst, -compactness_worst, -compactness_mean, -diagnosis) 
+
+bcdf_with_y = as_tibble(bcdf_fin) %>% dplyr::select(-perimeter_mean, -radius_mean, -perimeter_worst, -radius_worst, -area_mean, -area_worst, -perimeter_se, -radius_se, -area_se, -concave.points_mean, -concavity_mean, -texture_worst, -texture_mean, -concave.points_worst, -concavity_worst, -compactness_worst, -compactness_mean) 
+
+bcdf_x = as_tibble(bcdf_fin) %>% dplyr::select(-perimeter_mean, -radius_mean, -perimeter_worst, -radius_worst, -area_mean, -area_worst, -perimeter_se, -radius_se, -area_se, -concave.points_mean, -concavity_mean, -texture_worst, -texture_mean, -concave.points_worst, -concavity_worst, -compactness_worst, -compactness_mean, -diagnosis) %>% mutate(intercept = 1)
 ```
 
 
@@ -142,6 +146,8 @@ Newton-Raphson with gradient ascent and step-halving
 NewtonRaphson <- function(y, x, func, start, tol=1e-10, maxiter = 200) {
   i <- 0
   cur <- start
+  x = as.matrix(x)
+  colnames(x) = names(bcdf_x)
   stuff <- func(y, x , cur)
   res <- c(0, stuff$loglik, cur)
   prevloglik <- -Inf
@@ -177,7 +183,7 @@ NewtonRaphson <- function(y, x, func, start, tol=1e-10, maxiter = 200) {
 
 Test on dataset 
 ```{r}
-NewtonRaphson(y = bcdf_fin$diagnosis, as.matrix(bcdf_x), logisticstuff, start = rep(1, ncol(bcdf_x)))
+NewtonRaphson(y = bcdf_fin$diagnosis, as.matrix(bcdf_x), logisticstuff, start = rep(0, ncol(bcdf_x)))
 
 #start = rep(1, ncol(bcdf_x))
 #as.matrix(bcdf_x) %*%rep(1, ncol(bcdf_x))
@@ -186,5 +192,181 @@ NewtonRaphson(y = bcdf_fin$diagnosis, as.matrix(bcdf_x), logisticstuff, start = 
 ```
 
 
+Logistic-LASSO
 
+Coordinate-wise descent LASSO
+```{r}
+cord.lasso = function(lambda, y, X, betavec, tol = 1e-7, maxiter = 200){
+  i = 0
+  #pp = length(s)
+  #n = length(y)
+  #betavec = start
+  loglik = 1e6 #reasoning?
+  res = c(0, loglik, betavec)
+  prevloglik = Inf
+  while (i < maxiter && abs(loglik - prevloglik) > tol){
+    i = i + 1
+    prevloglik = loglik
+    for (n in 1:length(betavec)){
+      u = X %*% betavec 
+      expu = exp(u)
+      p = expu/(expu + 1)
+      w = p*(1-p) #weight 
+      
+      #avoid coefficients from divergence to achieve final fitted probabilities of 0 or 1
+      w = ifelse(abs(w-0) < 1e-7, 1e-7, w)
+      z = u + (y-p)/w
+      z_without_j = X[,-n] %*% betavec[-n]
+      
+     r = y - X%*% betavec
+      # soft-threshold solution 
+     xr = sum(X[,n]*r)
+     xx = mean(X[,n]^2)   
+     betavec[n] = mean(w*X[,n]*(z-z_without_j))/(mean(w*xx))
+     betavec[n] = sign(xr)*ifelse(betavec[n]>0,betavec[n],0)
+  #residuals
+     r = r - X[,n]*betavec[n]
+        
+     #beta_cd[nl,] = betavec
+    loglik = sum(w*(z-X %*% betavec)^2)/(2*length(y)) + lambda*sum(abs(betavec))
+    res = rbind(res, c(i, loglik, betavec))}}
+  return(res)
+}
+```
+
+Original codes
+```{r}
+sfun = function(beta, lambda) {sign(beta)*max(abs(beta)-lambda,0)}
+cord.lasso = function(lambda, y, X, betavec, tol = 1e-7, maxiter = 200){
+  i = 0
+  #pp = length(s)
+  #n = length(y)
+  #betavec = start
+  loglik = 1e6 
+  res = c(0, loglik, betavec)
+  prevloglik = Inf
+  while (i < maxiter && abs(loglik - prevloglik) > tol && loglik < Inf){
+    i = i + 1
+    prevloglik = loglik
+    for (n in 1:length(betavec)){
+      u = X %*% betavec 
+      expu = exp(u)
+      p = expu/(expu + 1)
+      w = p*(1-p) #weight 
+      
+      #avoid coefficients from divergence to achieve final fitted probabilities of 0 or 1
+      w = ifelse(abs(w-0) < 1e-7, 1e-7, w)
+      z = u + (y-p)/w
+      z_without_j = X[,-n] %*% betavec[-n]
+      betavec[n] = sfun(mean(w*X[,n]*(z-z_without_j)),lambda)/(mean(w*X[,n]*X[,n]))}
+    loglik = sum(w*(z-X %*% betavec)^2)/(2*length(y)) + lambda*sum(abs(betavec))
+    res = rbind(res, c(i, loglik, betavec))}
+  return(res)
+}
+```
+
+```{r}
+cord.lasso(lambda = 0.3, y = bcdf_fin$diagnosis, X = as.matrix(bcdf_x), betavec = rep(1, ncol(bcdf_x)))
+```
+
+
+### Check for convergence
+
+Pathwise coordinate optimization to get PATH OF SOLUTIONS
+
+```{r}
+path = function(X, y, tunegrid){
+  beta = NULL
+  for (i in 1:100){
+    cor.result = cord.lasso(lambda = tunegrid[i],
+                            X = as.matrix(X), 
+                            y = y,
+                            betavec = rep(1, ncol(X)))
+    last_beta = cor.result[nrow(cor.result),3:ncol(cor.result)]
+    start = last_beta
+    beta = rbind(beta, c(last_beta))
+  }
+  return(cbind(tunegrid,beta))
+}
+
+path.out = path(X = bcdf_x, y = bcdf_fin$diagnosis, tunegrid = exp(seq(-8e-1, -8, length = 100)))
+colnames(path.out) = c("tunegrid",colnames(new_bcdf), "intercept")
+path.out = as.data.frame(path.out)
+```
+
+
+Plot the path
+```{r}
+path.out %>% 
+  gather(key = par, value = estimate, c(2:ncol(path.out))) %>% 
+  ggplot(aes(x = log(tunegrid), y = estimate, group = par, col = par)) + 
+  geom_line()
+```
+
+#Cross validation
+
+```{r}
+cv.errors = NULL
+cv.error = NULL
+cv.se = NULL
+grid = NULL
+tunegrid = exp(seq(-1,7,length = 100))
+start = rep(0, ncol(bcdf_x))
+i = 0
+crossval = function(X, y, tunegrid, fold_num){
+  folds = sample(1:fold_num, nrow(X), replace = TRUE)
+  start = rep(1, ncol(X))
+for(l in tunegrid){
+  i = i + 1
+  for(k in 1:fold_num){
+  x_train = X[folds != k,] 
+  y_train = y[folds != k] 
+  loglasso_res = cord.lasso(lambda = l, 
+                            y = y_train, 
+                            X = as.matrix(x_train), 
+                            betavec = start)
+  loglasso_coeff = loglasso_res[nrow(loglasso_res),3:ncol(loglasso_res)]
+  x_test = as.matrix(X[folds == k,]) 
+  y_test = y[folds == k]
+  u = x_test %*% loglasso_coeff
+  expu = exp(u)
+  p = expu/(1+expu)
+  cv.errors[i] = mean((y_test-p)^2)
+  start = loglasso_coeff
+  }
+  cv.error[i] = mean(cv.errors)
+  cv.se[i] = sqrt(var(cv.errors)/fold_num)
+  grid[i] = l
+  res = cbind(grid, cv.error,cv.se)
+}
+  return(res)}
+
+cv_res = crossval(X = bcdf_x, y = bcdf_fin$diagnosis, tunegrid = exp(seq(-7,2,length = 100)), fold_num = 5) %>% as_tibble()
+```
+
+```{r}
+ggplot(cv_res, aes(x = log(cv_res$grid), y = cv_res$cv.error)) + 
+  geom_errorbar(aes(ymin = cv_res$cv.error-cv_res$cv.se,
+                    ymax = cv_res$cv.error + cv_res$cv.se),col = 1) + 
+  geom_line() + geom_point(size = 0.8, col = 4)
+```
+
+
+# Perform cross-validation logistic LASSO in glmnet (for comparison)
+
+```{r}
+glmnGrid <- expand.grid(.alpha = seq(0, 1, length = 6),
+                        .lambda = exp(seq(-8, -2, length = 20)))
+set.seed(1)
+model.glmn <- train(x = dat[rowTrain,1:8],
+                    y = dat$diabetes[rowTrain],
+                    method = "glmnet",
+                    tuneGrid = glmnGrid,
+                    metric = "ROC",
+                    trControl = ctrl)
+
+plot(model.glmn, xTrans = function(x) log(x))   
+
+model.glmn$bestTune
+```
 
