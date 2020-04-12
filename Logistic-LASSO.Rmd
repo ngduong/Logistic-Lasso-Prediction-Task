@@ -60,7 +60,7 @@ summary(log.mod)
 Investigate multicollinearity problem
 
 ```{r}
-bcdf_fin %>% dplyr::select(-diagnosis) %>%  #filter only numeric variables 
+bcdf_fin %>% dplyr::select(-diagnosis) %>%  #filter only numeric variables
   cor() %>%   
   #compute correlation matrix
   corrplot(method = "circle",         #represent correlation in "circle", size = magnitude 
@@ -87,11 +87,13 @@ a = bcdf_x %>%
 
 new_bcdf = as_tibble(bcdf_fin) %>% dplyr::select(-perimeter_mean, -radius_mean, -perimeter_worst, -radius_worst, -area_mean, -area_worst, -perimeter_se, -radius_se, -area_se, -concave.points_mean, -concavity_mean, -texture_worst, -texture_mean, -concave.points_worst, -concavity_worst, -compactness_worst, -compactness_mean, -diagnosis) 
 
+#new_bcdf = as_tibble(bcdf_fin) %>% dplyr::select(compactness_mean, compactness_se, concave.points_se, concave.points_worst, concavity_se, fractal_dimension_mean, fractal_dimension_se, fractal_dimension_worst, radius_mean, radius_se, smoothness_mean, smoothness_se, smoothness_worst, symmetry_mean, symmetry_se, symmetry_worst, texture_mean, texture_se)
+
 bcdf_with_y = as_tibble(bcdf_fin) %>% dplyr::select(-perimeter_mean, -radius_mean, -perimeter_worst, -radius_worst, -area_mean, -area_worst, -perimeter_se, -radius_se, -area_se, -concave.points_mean, -concavity_mean, -texture_worst, -texture_mean, -concave.points_worst, -concavity_worst, -compactness_worst, -compactness_mean) 
 
-#bcdf_x = as_tibble(bcdf_fin) %>% dplyr::select(-perimeter_mean, -radius_mean, -perimeter_worst, -radius_worst, -area_mean, -area_worst, -perimeter_se, -radius_se, -area_se, -concave.points_mean, -concavity_mean, -texture_worst, -texture_mean, -concave.points_worst, -concavity_worst, -compactness_worst, -compactness_mean, -diagnosis) %>% mutate(intercept = 1)
+bcdf_x = as_tibble(bcdf_fin) %>% dplyr::select(-perimeter_mean, -radius_mean, -perimeter_worst, -radius_worst, -area_mean, -area_worst, -perimeter_se, -radius_se, -area_se, -concave.points_mean, -concavity_mean, -texture_worst, -texture_mean, -concave.points_worst, -concavity_worst, -compactness_worst, -compactness_mean, -diagnosis) %>% mutate(intercept = 1)
 
-bcdf_x = as_tibble(bcdf_fin) %>% dplyr::select(compactness_mean, compactness_se, concave.points_se, concave.points_worst, concavity_se, fractal_dimension_mean, fractal_dimension_se, fractal_dimension_worst, radius_mean, radius_se, smoothness_mean, smoothness_se, smoothness_worst, symmetry_mean, symmetry_se, symmetry_worst, texture_mean, texture_se) %>% mutate(intercept = 1)
+#bcdf_x = as_tibble(bcdf_fin) %>% dplyr::select(compactness_mean, compactness_se, concave.points_se, concave.points_worst, concavity_se, fractal_dimension_mean, fractal_dimension_se, fractal_dimension_worst, radius_mean, radius_se, smoothness_mean, smoothness_se, smoothness_worst, symmetry_mean, symmetry_se, symmetry_worst, texture_mean, texture_se) %>% mutate(intercept = 1)
 ```
 
 
@@ -185,8 +187,9 @@ NewtonRaphson <- function(y, x, func, start, tol=1e-10, maxiter = 200) {
 
 Test on dataset 
 ```{r}
-NewtonRaphson(y = bcdf_fin$diagnosis, as.matrix(bcdf_x), logisticstuff, start = rep(0, ncol(bcdf_x)))
+newton_raph_res = NewtonRaphson(y = bcdf_fin$diagnosis, as.matrix(bcdf_x), logisticstuff, start = rep(0, ncol(bcdf_x)))
 
+colnames(newton_raph_res) = names()
 #start = rep(1, ncol(bcdf_x))
 #as.matrix(bcdf_x) %*%rep(1, ncol(bcdf_x))
 
@@ -247,41 +250,6 @@ cord.lasso = function(lambda, y, X, betavec, tol = 1e-7, maxiter = 200){
 cord.lasso(lambda = 0.3, y = bcdf_fin$diagnosis, X = as.matrix(bcdf_x), betavec = rep(1, ncol(bcdf_x)))
 ```
 
-
-```{r}
-# compute the solution on a grid of lambdas
- #nl      <- 200
- #lambda  <- seq(0,200,length=nl)
-
- #beta_cd <- matrix(0,nl,p)
-
- for(l in 1:nl){
-
-   # Initial values
-   b <- rep(0,p)
-   r <- Y - X%*%b
-
-   # Coordiante descent
-   for(step in 1:50){for(j in 1:p){
-
-     # partial residuals
-     r <- r + X[,j]*b[j]
-
-     # soft-threshold solution
-     xr <- sum(X[,j]*r)
-     xx <- sum(X[,j]^2)   
-     b[j] <- (abs(xr)-lambda[l]/2)/xx
-     b[j] <- sign(xr)*ifelse(b[j]>0,b[j],0)
-
-     # residuals
-     r <- r - X[,j]*b[j]
-
-   }}
-
-   beta_cd[l,]<-b
-}
-```
-
 ### Check for convergence
 
 Compute the solution on a grid of lambdas. Pathwise coordinate optimization to get PATH OF SOLUTIONS
@@ -311,7 +279,6 @@ path.out = path(X = bcdf_x, y = bcdf_fin$diagnosis, tunegrid = exp(seq(0, -8, le
 colnames(path.out) = c("tunegrid", colnames(new_bcdf), "intercept")
 path.out = as.data.frame(path.out)
 ```
-
 
 Plot the path
 ```{r}
@@ -365,8 +332,8 @@ cv_res = crossval(X = bcdf_x, y = bcdf_fin$diagnosis, tunegrid = exp(seq(-6,1,le
 
 Find best lambda 
 ```{r}
-best.lambda = cv_res %>% filter()
-min(cv_res$mse)
+best.lambda = cv_res %>% filter(mse == min(cv_res$mse)) %>% dplyr::select(grid)
+
 ```
 
 Visualize CV RMSE 
@@ -381,18 +348,14 @@ cv_res %>% ggplot(aes(x = log(cv_res$grid), y = cv_res$mse)) +
 # Perform cross-validation logistic LASSO in glmnet (for comparison)
 
 ```{r}
-glmnGrid <- expand.grid(.alpha = seq(0, 1, length = 6),
-                        .lambda = exp(seq(-8, -2, length = 20)))
-set.seed(1)
-model.glmn <- train(x = dat[rowTrain,1:8],
-                    y = dat$diabetes[rowTrain],
-                    method = "glmnet",
-                    tuneGrid = glmnGrid,
-                    metric = "ROC",
-                    trControl = ctrl)
+cv.lasso <- cv.glmnet(as.matrix(bcdf_x), y = as.factor(bcdf_fin$diagnosis),
+                      family="binomial",
+                      type.measure = "mse",
+                      alpha = 1, 
+                      lambda = exp(seq(-10, -1, length=100)))
 
-plot(model.glmn, xTrans = function(x) log(x))   
+plot(cv.lasso)
 
-model.glmn$bestTune
+cv.lasso$lambda.min
 ```
 
