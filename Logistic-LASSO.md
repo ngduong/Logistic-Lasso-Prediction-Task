@@ -1,27 +1,11 @@
----
-title: "Logistic-LASSO Breast Cancer Classification Task"
-author: "Ngoc Duong - nqd2000"
-date: "3/25/2020"
-output: github_document
-editor_options: 
-  chunk_output_type: console
----
+Logistic-LASSO Breast Cancer Classification Task
+================
+Ngoc Duong - nqd2000
+3/25/2020
 
-```{r setup, include=FALSE}
-knitr::opts_chunk$set(echo = TRUE)
+Data import and cleaning
 
-require(tidyverse)
-require(survival)
-require(quantreg)
-require(glmnet)
-require(MASS)
-require(pROC)
-library(corrplot)
-library(corrr)
-```
-
-Data import and cleaning 
-```{r}
+``` r
 breast_cancer_data = read.csv("./breast-cancer-1.csv")
 
 bcdf = breast_cancer_data %>% 
@@ -30,9 +14,12 @@ bcdf = breast_cancer_data %>%
   dplyr::select(-id, -X)
 ```
 
-Standardize design matrix (because although logistic is scale-invariant, LASSO is not, this is to ensure comparability of estimates by these different models)
+Standardize design matrix (because although logistic is scale-invariant,
+LASSO is not, this is to ensure comparability of estimates by these
+different
+models)
 
-```{r}
+``` r
 pred_names = bcdf %>% dplyr::select(-diagnosis) %>% names() %>% as.vector()
 bcdf_x = NULL
 
@@ -46,16 +33,78 @@ colnames(bcdf_x) <- c(pred_names)
 bcdf_fin = cbind(bcdf[1], bcdf_x)
 ```
 
-Try to git a logistic regression model using glm package. The warning messages show algorithm did not converge, potentially due to multicollinearity.
+Try to git a logistic regression model using glm package. The warning
+messages show algorithm did not converge, potentially due to
+multicollinearity.
 
-```{r}
+``` r
 log.mod = glm(diagnosis~., data = bcdf_fin, family = "binomial")
+```
+
+    ## Warning: glm.fit: algorithm did not converge
+
+    ## Warning: glm.fit: fitted probabilities numerically 0 or 1 occurred
+
+``` r
 summary(log.mod)
 ```
 
-Investigate multicollinearity problem
+    ## 
+    ## Call:
+    ## glm(formula = diagnosis ~ ., family = "binomial", data = bcdf_fin)
+    ## 
+    ## Deviance Residuals: 
+    ##    Min      1Q  Median      3Q     Max  
+    ##  -8.49   -8.49   -8.49    8.49    8.49  
+    ## 
+    ## Coefficients:
+    ##                          Estimate Std. Error z value Pr(>|z|)    
+    ## (Intercept)                253916      23548  10.783  < 2e-16 ***
+    ## radius_mean               8552881     948876   9.014  < 2e-16 ***
+    ## texture_mean               842067      63252  13.313  < 2e-16 ***
+    ## perimeter_mean           35796847     598698  59.791  < 2e-16 ***
+    ## area_mean               -45790271    1375034 -33.301  < 2e-16 ***
+    ## smoothness_mean          -2144100     117586 -18.234  < 2e-16 ***
+    ## compactness_mean          -339500     169667  -2.001  0.04540 *  
+    ## concavity_mean              83032     112278   0.740  0.45959    
+    ## concave.points_mean       -665733     208830  -3.188  0.00143 ** 
+    ## symmetry_mean             1109889      21306  52.093  < 2e-16 ***
+    ## fractal_dimension_mean    -298858      15312 -19.519  < 2e-16 ***
+    ## radius_se                 9230274     324119  28.478  < 2e-16 ***
+    ## texture_se                3513102     110604  31.763  < 2e-16 ***
+    ## perimeter_se              3438590      95432  36.032  < 2e-16 ***
+    ## area_se                 -29084420     834804 -34.840  < 2e-16 ***
+    ## smoothness_se             2249396      36747  61.213  < 2e-16 ***
+    ## compactness_se           -3175247     102656 -30.931  < 2e-16 ***
+    ## concavity_se              4614370     161208  28.624  < 2e-16 ***
+    ## concave.points_se        -7773633     247582 -31.398  < 2e-16 ***
+    ## symmetry_se               2389064      34103  70.054  < 2e-16 ***
+    ## fractal_dimension_se      4001120     174560  22.921  < 2e-16 ***
+    ## radius_worst            -29628795    1035752 -28.606  < 2e-16 ***
+    ## texture_worst            -3584767     149772 -23.935  < 2e-16 ***
+    ## perimeter_worst         -11889227     409644 -29.023  < 2e-16 ***
+    ## area_worst               50959831    1560436  32.657  < 2e-16 ***
+    ## smoothness_worst          -493436      75304  -6.553 5.66e-11 ***
+    ## compactness_worst         1413874      62922  22.470  < 2e-16 ***
+    ## concavity_worst          -6316972     317828 -19.875  < 2e-16 ***
+    ## concave.points_worst      9408268     359616  26.162  < 2e-16 ***
+    ## symmetry_worst           -1530342      20986 -72.923  < 2e-16 ***
+    ## fractal_dimension_worst   -667962      96441  -6.926 4.33e-12 ***
+    ## ---
+    ## Signif. codes:  0 '***' 0.001 '**' 0.01 '*' 0.05 '.' 0.1 ' ' 1
+    ## 
+    ## (Dispersion parameter for binomial family taken to be 1)
+    ## 
+    ##     Null deviance:   751.44  on 568  degrees of freedom
+    ## Residual deviance: 32006.76  on 538  degrees of freedom
+    ## AIC: 32069
+    ## 
+    ## Number of Fisher Scoring iterations: 25
 
-```{r}
+Investigate multicollinearity
+problem
+
+``` r
 bcdf_fin %>% dplyr::select(-diagnosis) %>%  #filter only numeric variables
   cor() %>%   
   #compute correlation matrix
@@ -63,13 +112,18 @@ bcdf_fin %>% dplyr::select(-diagnosis) %>%  #filter only numeric variables
            type = "upper", 
            diag=FALSE
            )
+```
+
+![](Logistic-LASSO_files/figure-gfm/unnamed-chunk-4-1.png)<!-- -->
+
+``` r
 #We can see that there are some very strong correlations between certain variables
 ```
 
+Find correlation pairs that are above 0.6 to leave out of the
+dataset
 
-Find correlation pairs that are above 0.6 to leave out of the dataset
-
-```{r}
+``` r
 #obtain list of variables that are correlated with one another whose correlation is at least 0.85
 cor_var = bcdf_x %>% 
     correlate() %>% 
@@ -78,7 +132,13 @@ cor_var = bcdf_x %>%
     filter(r > 0.85) %>% 
     slice(which(row_number() %% 2 == 0)) %>% 
     pivot_longer(x:y) %>% dplyr::select(-r,-name) %>% distinct(value) 
+```
 
+    ## 
+    ## Correlation method: 'pearson'
+    ## Missing treated using: 'pairwise.complete.obs'
+
+``` r
 #full data with response variable and predictors
 full_data = as_tibble(bcdf_fin) %>% dplyr::select(-perimeter_mean, -radius_mean, -perimeter_worst, -radius_worst, -area_mean, -area_worst, -perimeter_se, -radius_se, -area_se, -concave.points_mean, -concavity_mean, -texture_worst, -texture_mean, -compactness_worst, -concave.points_worst, -concavity_worst,-compactness_mean) 
 
@@ -89,16 +149,55 @@ Xmat_no_int = full_data %>% dplyr::select(-diagnosis)
 Xmat_int = Xmat_no_int %>% mutate(intercept = 1)
 ```
 
-Looking at logistic regression results by glm 
-```{r}
+Looking at logistic regression results by glm
+
+``` r
 log.mod = glm(diagnosis~., data = full_data, family = "binomial")
 summary(log.mod)
 ```
 
-### Task 1
-\item Build a logistic model to classify the images into  malignant/benign, and write down your likelihood function, its gradient and Hessian matrix.  
+    ## 
+    ## Call:
+    ## glm(formula = diagnosis ~ ., family = "binomial", data = full_data)
+    ## 
+    ## Deviance Residuals: 
+    ##      Min        1Q    Median        3Q       Max  
+    ## -3.12112  -0.28937  -0.05735   0.19911   2.55257  
+    ## 
+    ## Coefficients:
+    ##                         Estimate Std. Error z value Pr(>|z|)    
+    ## (Intercept)             -1.52775    0.20654  -7.397 1.39e-13 ***
+    ## smoothness_mean          1.57247    0.40552   3.878 0.000105 ***
+    ## symmetry_mean           -0.11873    0.30203  -0.393 0.694245    
+    ## fractal_dimension_mean  -4.50615    0.53498  -8.423  < 2e-16 ***
+    ## texture_se               0.80683    0.23051   3.500 0.000465 ***
+    ## smoothness_se           -0.83043    0.29501  -2.815 0.004880 ** 
+    ## compactness_se           0.39537    0.42498   0.930 0.352201    
+    ## concavity_se            -0.02998    0.34701  -0.086 0.931160    
+    ## concave.points_se        2.28564    0.36494   6.263 3.78e-10 ***
+    ## symmetry_se             -0.20394    0.33909  -0.601 0.547557    
+    ## fractal_dimension_se    -0.75510    0.55886  -1.351 0.176651    
+    ## smoothness_worst         0.78588    0.48781   1.611 0.107174    
+    ## symmetry_worst           1.00913    0.43083   2.342 0.019166 *  
+    ## fractal_dimension_worst  2.83456    0.64071   4.424 9.68e-06 ***
+    ## ---
+    ## Signif. codes:  0 '***' 0.001 '**' 0.01 '*' 0.05 '.' 0.1 ' ' 1
+    ## 
+    ## (Dispersion parameter for binomial family taken to be 1)
+    ## 
+    ##     Null deviance: 751.44  on 568  degrees of freedom
+    ## Residual deviance: 264.20  on 555  degrees of freedom
+    ## AIC: 292.2
+    ## 
+    ## Number of Fisher Scoring iterations: 7
 
-```{r}
+### Task 1
+
+Build a logistic model to classify the images into malignant/benign, and
+write down your likelihood function, its gradient and Hessian
+matrix.
+
+``` r
 # Function to compute the loglikelihood, the gradient, and the Hessian matrix for data dat evaluated at the parameter value betavec
 ## dat    - A list with components
 #  x      - vector of explanatory variables
@@ -112,9 +211,10 @@ summary(log.mod)
 #  Hess   - (2 x 2 matrix) Hessian#
 ```
 
-Function to return log-likelihood, gradient, and Hessian matrix of logistic regression
+Function to return log-likelihood, gradient, and Hessian matrix of
+logistic regression
 
-```{r}
+``` r
 logisticstuff <- function(y, x, betavec) {
   u <- x %*% betavec
   expu <- exp(u)
@@ -144,7 +244,7 @@ logisticstuff <- function(y, x, betavec) {
 
 Newton-Raphson with gradient ascent and step-halving
 
-```{r}
+``` r
 NewtonRaphson <- function(y, x, func, start, tol=1e-10, maxiter = 200) {
   i <- 0
   cur <- start
@@ -183,8 +283,10 @@ NewtonRaphson <- function(y, x, func, start, tol=1e-10, maxiter = 200) {
   }
 ```
 
-Test on dataset 
-```{r}
+Test on
+dataset
+
+``` r
 newton_raph_res = NewtonRaphson(y = full_data$diagnosis, as.matrix(Xmat_int), logisticstuff, start = rep(0, ncol(Xmat_int)))
 
 #convert to data frame 
@@ -197,12 +299,20 @@ colnames(newton_raph_coeff) = colnames(Xmat_int)
 as_tibble(newton_raph_coeff)
 ```
 
+    ## # A tibble: 1 x 14
+    ##   smoothness_mean symmetry_mean fractal_dimensi… texture_se smoothness_se
+    ##             <dbl>         <dbl>            <dbl>      <dbl>         <dbl>
+    ## 1            1.57        -0.119            -4.51      0.807        -0.830
+    ## # … with 9 more variables: compactness_se <dbl>, concavity_se <dbl>,
+    ## #   concave.points_se <dbl>, symmetry_se <dbl>, fractal_dimension_se <dbl>,
+    ## #   smoothness_worst <dbl>, symmetry_worst <dbl>,
+    ## #   fractal_dimension_worst <dbl>, intercept <dbl>
 
 Logistic-LASSO
 
 Coordinate-wise descent LASSO
 
-```{r}
+``` r
 soft_threshold = function(beta, lambda) {
   ifelse(abs(beta)>lambda && beta > 0,
          beta-lambda, 
@@ -246,18 +356,30 @@ coord.lasso = function(lambda, y, X, betavec, tol = 1e-7, maxiter = 200){
 }
 ```
 
-```{r}
+``` r
 coord.lasso(lambda = 0.3, 
             y = full_data$diagnosis, 
             X = as.matrix(Xmat_int), 
             betavec = rep(1, ncol(Xmat_int)))
 ```
 
+    ##     [,1]         [,2] [,3] [,4] [,5] [,6] [,7] [,8] [,9] [,10] [,11] [,12]
+    ## res    0 1.000000e+06    1    1    1    1    1    1    1     1     1     1
+    ##        1 6.611112e-01    0    0    0    0    0    0    0     0     0     0
+    ##        2 5.000000e-01    0    0    0    0    0    0    0     0     0     0
+    ##        3 5.000000e-01    0    0    0    0    0    0    0     0     0     0
+    ##     [,13] [,14] [,15] [,16]
+    ## res     1     1     1     1
+    ##         0     0     0     0
+    ##         0     0     0     0
+    ##         0     0     0     0
+
 ### Check for convergence
 
-Compute the solution on a grid of lambdas. Pathwise coordinate optimization to get PATH OF SOLUTIONS
+Compute the solution on a grid of lambdas. Pathwise coordinate
+optimization to get PATH OF SOLUTIONS
 
-```{r}
+``` r
 path = function(X, y, tunegrid){
   coeff = NULL
   tunegrid = as.vector(tunegrid)
@@ -279,7 +401,8 @@ path_df = as.data.frame(path_df)
 ```
 
 Plot the path
-```{r}
+
+``` r
 path_df %>% 
   pivot_longer(2:ncol(path_df), 
                names_to = "Predictors",
@@ -290,9 +413,11 @@ path_df %>%
        y = "Coefficient Estimate") 
 ```
 
-#Cross validation
+![](Logistic-LASSO_files/figure-gfm/unnamed-chunk-14-1.png)<!-- -->
 
-```{r}
+\#Cross validation
+
+``` r
 set.seed(7)
 mses = NULL
 mse = NULL
@@ -330,15 +455,31 @@ for(nl in tunegrid){
 cv_res = crossval(X = Xmat_int, y = full_data$diagnosis, tunegrid = exp(seq(-9,-2,length = 100)), fold_num = 5) %>% as_tibble()
 ```
 
-Find best lambda 
-```{r}
+Find best
+lambda
+
+``` r
 best.lambda = cv_res %>% filter(mse == min(cv_res$mse)) %>% dplyr::select(grid)
 best.lambda 
+```
+
+    ## # A tibble: 1 x 1
+    ##      grid
+    ##     <dbl>
+    ## 1 0.00195
+
+``` r
 log(best.lambda)
 ```
 
-Visualize CV RMSE 
-```{r warning = FALSE, message = FALSE}
+    ## # A tibble: 1 x 1
+    ##    grid
+    ##   <dbl>
+    ## 1 -6.24
+
+Visualize CV RMSE
+
+``` r
 cv_res %>% ggplot(aes(x = log(cv_res$grid), y = cv_res$mse)) + 
   geom_errorbar(aes(ymin = cv_res$mse-cv_res$rmse.std.error,
                     ymax = cv_res$mse+cv_res$rmse.std.error),col = 1) + 
@@ -348,10 +489,11 @@ cv_res %>% ggplot(aes(x = log(cv_res$grid), y = cv_res$mse)) +
   geom_text(aes(x=as.numeric(log(best.lambda)), label="log(lambda) = -6.6", y=0.22), col = 2, vjust = 2, text=element_text(size=11))
 ```
 
+![](Logistic-LASSO_files/figure-gfm/unnamed-chunk-17-1.png)<!-- -->
 
 # Perform cross-validation logistic LASSO in glmnet (for comparison)
 
-```{r}
+``` r
 set.seed(7)
 cv.lasso <- cv.glmnet(as.matrix(Xmat_no_int), y = as.factor(full_data$diagnosis),
                       family="binomial",
@@ -360,18 +502,30 @@ cv.lasso <- cv.glmnet(as.matrix(Xmat_no_int), y = as.factor(full_data$diagnosis)
                       lambda = exp(seq(-9, -2, length=100)))
 
 plot(cv.lasso)
+```
 
+![](Logistic-LASSO_files/figure-gfm/unnamed-chunk-18-1.png)<!-- -->
+
+``` r
 cv.lasso$lambda.min
-log(cv.lasso$lambda.min)
+```
 
+    ## [1] 0.001465949
+
+``` r
+log(cv.lasso$lambda.min)
+```
+
+    ## [1] -6.525253
+
+``` r
 #coefficients
 coeff = coef(cv.lasso, s=cv.lasso$lambda.min) %>% as.numeric()
 ```
 
-
 ### Calculate MSE for Logistic-Lasso and Newton Raphson
 
-```{r}
+``` r
 pred_error = function(y, X, betavec) {
   expu = exp(as.matrix(X) %*% betavec)
   p = expu/(1+expu)
@@ -380,17 +534,20 @@ pred_error = function(y, X, betavec) {
 }
 ```
 
-Newton Raphon's MSE 
+Newton Raphon’s
+MSE
 
-```{r}
+``` r
 newton_raph_vec = newton_raph_res[c(nrow(newton_raph_res)),3:ncol(newton_raph_res)]
 newton_raph_error = pred_error(full_data$diagnosis, Xmat_int, newton_raph_vec)
 newton_raph_error
 ```
 
-Logistic-Lasso's MSE
+    ## [1] 0.07053378
 
-```{r}
+Logistic-Lasso’s MSE
+
+``` r
 loglasso_betas = coord.lasso(lambda = as.numeric(best.lambda), 
             y = full_data$diagnosis, 
             X = as.matrix(Xmat_int), 
@@ -402,17 +559,22 @@ loglasso_error = pred_error(full_data$diagnosis, Xmat_int, loglasso_betas)
 loglasso_error
 ```
 
-GLMNet's MSE
-```{r}
+    ## [1] 0.07110142
+
+GLMNet’s MSE
+
+``` r
 glmnet_coeff = replace(coeff, c(1,2:14), coeff[c(2:14,1)])
 
 glmnet_error = pred_error(full_data$diagnosis, Xmat_int, glmnet_coeff)
 glmnet_error
 ```
 
+    ## [1] 0.07088173
 
 Summary table
-```{r}
+
+``` r
 log_lasso = c(error = round(loglasso_error,4))
 newton_raphson = c(error = round(newton_raph_error,4))
 glmnet = c(error = round(glmnet_error,4))
@@ -424,10 +586,13 @@ colnames(table2)[1:3] <- c("Newton-Raphson","Logistic LASSO","GLMnet")
 knitr::kable(table2, escape = FALSE)
 ```
 
+|     | Newton-Raphson | Logistic LASSO | GLMnet |
+| --- | -------------: | -------------: | -----: |
+| MSE |         0.0705 |         0.0711 | 0.0709 |
 
 ## Cross-validation
 
-```{r eval = FALSE}
+``` r
 set.seed(7)
 mses = NULL
 mse = NULL
@@ -464,7 +629,3 @@ for(nl in tunegrid){
 
 cv_res = crossval(X = Xmat_int, y = full_data$diagnosis, tunegrid = exp(seq(-9,-2,length = 100)), fold_num = 5) %>% as_tibble()
 ```
-
-
-
-
