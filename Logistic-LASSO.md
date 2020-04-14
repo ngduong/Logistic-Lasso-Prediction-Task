@@ -132,13 +132,7 @@ cor_var = bcdf_x %>%
     filter(r > 0.85) %>% 
     slice(which(row_number() %% 2 == 0)) %>% 
     pivot_longer(x:y) %>% dplyr::select(-r,-name) %>% distinct(value) 
-```
 
-    ## 
-    ## Correlation method: 'pearson'
-    ## Missing treated using: 'pairwise.complete.obs'
-
-``` r
 #full data with response variable and predictors
 full_data = as_tibble(bcdf_fin) %>% dplyr::select(-perimeter_mean, -radius_mean, -perimeter_worst, -radius_worst, -area_mean, -area_worst, -perimeter_se, -radius_se, -area_se, -concave.points_mean, -concavity_mean, -texture_worst, -texture_mean, -compactness_worst, -concave.points_worst, -concavity_worst,-compactness_mean) 
 
@@ -191,25 +185,14 @@ summary(log.mod)
     ## 
     ## Number of Fisher Scoring iterations: 7
 
+``` r
+glm_coeff_tib = tibble(`GLM binomial` = round(replace(log.mod$coeff %>% as.numeric(), c(1,2:14), log.mod$coeff[c(2:14,1)]),4))
+```
+
 ### Task 1
 
 Build a logistic model to classify the images into malignant/benign, and
-write down your likelihood function, its gradient and Hessian
-matrix.
-
-``` r
-# Function to compute the loglikelihood, the gradient, and the Hessian matrix for data dat evaluated at the parameter value betavec
-## dat    - A list with components
-#  x      - vector of explanatory variables
-#  y      - vector of corresponding (binary) response variables
-# betavec - [beta_0, beta_1, ..., beta_n] - the vector of parameter
-#             values at which to evaluate these quantities
-
-## Returns a list with the following components evaluated at beta
-#  loglik - (scalar) the log likelihood
-#  grad   - (vector of length 2) gradient
-#  Hess   - (2 x 2 matrix) Hessian#
-```
+write down your likelihood function, its gradient and Hessian matrix.
 
 Function to return log-likelihood, gradient, and Hessian matrix of
 logistic regression
@@ -296,17 +279,8 @@ newton_raph_coeff = newton_raph_res[c(nrow(newton_raph_res)),3:ncol(newton_raph_
 colnames(newton_raph_coeff) = colnames(Xmat_int)
 
 #obtain final coeffcients
-as_tibble(newton_raph_coeff)
+nr_coeff_tib = as_tibble(round(newton_raph_coeff,4))
 ```
-
-    ## # A tibble: 1 x 14
-    ##   smoothness_mean symmetry_mean fractal_dimensi… texture_se smoothness_se
-    ##             <dbl>         <dbl>            <dbl>      <dbl>         <dbl>
-    ## 1            1.57        -0.119            -4.51      0.807        -0.830
-    ## # … with 9 more variables: compactness_se <dbl>, concavity_se <dbl>,
-    ## #   concave.points_se <dbl>, symmetry_se <dbl>, fractal_dimension_se <dbl>,
-    ## #   smoothness_worst <dbl>, symmetry_worst <dbl>,
-    ## #   fractal_dimension_worst <dbl>, intercept <dbl>
 
 Logistic-LASSO
 
@@ -338,7 +312,7 @@ coord.lasso = function(lambda, y, X, betavec, tol = 1e-7, maxiter = 200){
       weight = p*(1-p)
       
       #avoid coefficients from divergence to achieve final fitted probabilities of 0 or 1
-      weight = ifelse(abs(weight-0) < 1e-7, 1e-7, weight)
+      weight = ifelse(abs(weight-0) < 1e-4, 1e-4, weight)
       
       #calculate working responses 
       resp = u + (y-p)/weight
@@ -413,12 +387,12 @@ path_df %>%
        y = "Coefficient Estimate") 
 ```
 
-![](Logistic-LASSO_files/figure-gfm/unnamed-chunk-14-1.png)<!-- -->
+![](Logistic-LASSO_files/figure-gfm/unnamed-chunk-13-1.png)<!-- -->
 
 \#Cross validation
 
 ``` r
-set.seed(7)
+set.seed(2020)
 mses = NULL
 mse = NULL
 rmse.std.error = NULL
@@ -459,23 +433,23 @@ Find best
 lambda
 
 ``` r
-best.lambda = cv_res %>% filter(mse == min(cv_res$mse)) %>% dplyr::select(grid)
-best.lambda 
+best.ll.lambda = cv_res %>% filter(mse == min(cv_res$mse)) %>% dplyr::select(grid)
+best.ll.lambda
 ```
 
     ## # A tibble: 1 x 1
     ##      grid
     ##     <dbl>
-    ## 1 0.00195
+    ## 1 0.00454
 
 ``` r
-log(best.lambda)
+log(best.ll.lambda)
 ```
 
     ## # A tibble: 1 x 1
     ##    grid
     ##   <dbl>
-    ## 1 -6.24
+    ## 1 -5.39
 
 Visualize CV RMSE
 
@@ -485,16 +459,16 @@ cv_res %>% ggplot(aes(x = log(cv_res$grid), y = cv_res$mse)) +
                     ymax = cv_res$mse+cv_res$rmse.std.error),col = 1) + 
   geom_line() + geom_point(size = 0.8, col = 4) + 
   labs(x = "Log(lambda)", y = "Mean-Squared Error") + 
-  geom_vline(xintercept = as.numeric(log(best.lambda)), col = 2) + 
-  geom_text(aes(x=as.numeric(log(best.lambda)), label="log(lambda) = -6.6", y=0.22), col = 2, vjust = 2, text=element_text(size=11))
+  geom_vline(xintercept = as.numeric(log(best.ll.lambda)), col = 2) + 
+  geom_text(aes(x=as.numeric(log(best.ll.lambda)), label="log(lambda) = -5.4", y=0.22), col = 2, vjust = 2, text=element_text(size=11))
 ```
 
-![](Logistic-LASSO_files/figure-gfm/unnamed-chunk-17-1.png)<!-- -->
+![](Logistic-LASSO_files/figure-gfm/unnamed-chunk-16-1.png)<!-- -->
 
 # Perform cross-validation logistic LASSO in glmnet (for comparison)
 
 ``` r
-set.seed(7)
+set.seed(2020)
 cv.lasso <- cv.glmnet(as.matrix(Xmat_no_int), y = as.factor(full_data$diagnosis),
                       family="binomial",
                       type.measure = "mse",
@@ -504,23 +478,27 @@ cv.lasso <- cv.glmnet(as.matrix(Xmat_no_int), y = as.factor(full_data$diagnosis)
 plot(cv.lasso)
 ```
 
-![](Logistic-LASSO_files/figure-gfm/unnamed-chunk-18-1.png)<!-- -->
+![](Logistic-LASSO_files/figure-gfm/unnamed-chunk-17-1.png)<!-- -->
 
 ``` r
 cv.lasso$lambda.min
 ```
 
-    ## [1] 0.001465949
+    ## [1] 0.002770053
 
 ``` r
 log(cv.lasso$lambda.min)
 ```
 
-    ## [1] -6.525253
+    ## [1] -5.888889
 
 ``` r
 #coefficients
 coeff = coef(cv.lasso, s=cv.lasso$lambda.min) %>% as.numeric()
+glmnet_coeff = replace(coeff, c(1,2:14), coeff[c(2:14,1)])
+
+#make tibble glmnet lasso coeff
+glmnet_coeff_tib = tibble(`GLMnet` = round(glmnet_coeff,4))
 ```
 
 ### Calculate MSE for Logistic-Lasso and Newton Raphson
@@ -534,45 +512,48 @@ pred_error = function(y, X, betavec) {
 }
 ```
 
-Newton Raphon’s
-MSE
+### Newton Raphon’s MSE
 
 ``` r
 newton_raph_vec = newton_raph_res[c(nrow(newton_raph_res)),3:ncol(newton_raph_res)]
+
+#nr_coeff_tib = tibble(`Newton-Raphson` = round(newton_raph_res[c(nrow(newton_raph_res)),3:ncol(newton_raph_res)]),4) 
 newton_raph_error = pred_error(full_data$diagnosis, Xmat_int, newton_raph_vec)
 newton_raph_error
 ```
 
     ## [1] 0.07053378
 
-Logistic-Lasso’s MSE
+### Logistic-Lasso’s MSE
 
 ``` r
-loglasso_betas = coord.lasso(lambda = as.numeric(best.lambda), 
+loglasso_betas = coord.lasso(lambda = as.numeric(best.ll.lambda), 
             y = full_data$diagnosis, 
             X = as.matrix(Xmat_int), 
-            betavec = rep(0, ncol(Xmat_int)))
-
+            betavec = rep(1, ncol(Xmat_int)))
+#get coefficients at best lambda 
 loglasso_betas = loglasso_betas[nrow(loglasso_betas), 3:ncol(loglasso_betas)]
 
+#make tibble 
+loglasso_coeff_tib = tibble(`Logistic-LASSO` = round(loglasso_betas, 4))
+
+#calc error
 loglasso_error = pred_error(full_data$diagnosis, Xmat_int, loglasso_betas)
 loglasso_error
 ```
 
-    ## [1] 0.07110142
+    ## [1] 0.07272211
 
 GLMNet’s MSE
 
 ``` r
-glmnet_coeff = replace(coeff, c(1,2:14), coeff[c(2:14,1)])
-
 glmnet_error = pred_error(full_data$diagnosis, Xmat_int, glmnet_coeff)
 glmnet_error
 ```
 
-    ## [1] 0.07088173
+    ## [1] 0.07141446
 
-Summary table
+### Summary table
 
 ``` r
 log_lasso = c(error = round(loglasso_error,4))
@@ -588,44 +569,111 @@ knitr::kable(table2, escape = FALSE)
 
 |     | Newton-Raphson | Logistic LASSO | GLMnet |
 | --- | -------------: | -------------: | -----: |
-| MSE |         0.0705 |         0.0711 | 0.0709 |
+| MSE |         0.0705 |         0.0727 | 0.0714 |
 
-## Cross-validation
+### Cross-validation
 
 ``` r
-set.seed(7)
-mses = NULL
-mse = NULL
-rmse.std.error = NULL
-grid = NULL
-i = 0
-crossval = function(X, y, tunegrid, fold_num){
+nr_mses = NULL
+ll_mses = NULL
+glmnet_mses = NULL
+error_comp_df = NULL
+set.seed(2020)
+
+#k-fold cross-validation
+cv_comp = function(X, y, fold_num){
   folds = sample(1:fold_num, nrow(X), replace = TRUE)
-for(nl in tunegrid){
-  i = i + 1
-  for(k in 1:fold_num){
+  for (k in 1:fold_num){
   #start = rep(1, ncol(X))
   x_train = as.matrix(X[folds != k,])
   y_train = y[folds != k] 
   x_test = as.matrix(X[folds == k,]) 
   y_test = y[folds == k]
-  start = rep(1, ncol(x_train))
-  loglasso_res = coord.lasso(lambda = nl, 
-                            y = y_train, 
-                            X = x_train, 
-                            betavec = start)
-  loglasso_coeff = loglasso_res[nrow(loglasso_res),3:ncol(loglasso_res)]
-  expu = exp(x_test %*% loglasso_coeff)
-  p = expu/(1+expu)
-  mses[k] = mean((y_test-p)^2) #cross-validated MSE
-  start = loglasso_coeff
+  
+  ll_expu = exp(x_test %*% loglasso_betas)
+  ll_p = ll_expu/(1+ll_expu)
+  ll_mse = mean((y_test-ll_p)^2) #cross-validated MSE for logistic lasso
+  ll_mses = rbind(ll_mses, ll_mse)
+  
+  nr_expu = exp(x_test %*% newton_raph_vec)
+  nr_p = nr_expu/(1+nr_expu)
+  nr_mse = mean((y_test - nr_p)^2) #cross-validated MSE for newton-raphson
+  nr_mses = rbind(nr_mses, nr_mse)
+  
+  glmnet_expu = exp(x_test %*% glmnet_coeff)
+  glmnet_p = glmnet_expu/(1+glmnet_expu)
+  glmnet_mse = mean((y_test - glmnet_p)^2) #cross-validated MSE for glmnet
+  glmnet_mses = rbind(glmnet_mses, glmnet_mse)
   }
-  mse[i] = mean(mses)
-  rmse.std.error[i] = sqrt(var(mses)/fold_num)
-  grid[i] = nl
-  res = cbind(grid, mse, rmse.std.error)
-}
+  res = tibble(`GLMnet`= glmnet_mse, `Logistic-LASSO` = ll_mses, `Newton-Raphson` = nr_mses)
   return(res)}
 
-cv_res = crossval(X = Xmat_int, y = full_data$diagnosis, tunegrid = exp(seq(-9,-2,length = 100)), fold_num = 5) %>% as_tibble()
+#repeated cross-validation n times
+rep_cv = function(X, y, fold_num, n){
+  while (i <= n){
+    i = i+1
+    error_comp = cv_comp(X, y, fold_num)
+    error_comp_df = rbind(error_comp_df, error_comp)
+  }
+  return(error_comp_df)
+}
+
+mse_comp_df = rep_cv(X = Xmat_int, y = full_data$diagnosis, fold_num = 5, n =1)
+
+rep_mse_comp_df = rep_cv(X = Xmat_int, y = full_data$diagnosis, fold_num = 5, n =5)
 ```
+
+### Visualize error comparisons
+
+``` r
+mse_comp_df %>% 
+  pivot_longer(1:3, names_to = "Model", values_to = "MSE") %>% 
+  ggplot(aes(x = MSE, col = Model, fill = Model)) + 
+  geom_density(adjust = 1.5, alpha = 0.3) + 
+  labs(title = "Distribution of 5-fold cross-validated MSE across models",
+       x = "Cross-validated MSE",
+       y = "Density") +
+  theme(legend.position = "bottom",
+        plot.title = element_text(size= 11, hjust = 0.5))
+```
+
+![](Logistic-LASSO_files/figure-gfm/unnamed-chunk-24-1.png)<!-- -->
+
+``` r
+rep_mse_comp_df %>% 
+  pivot_longer(1:3, names_to = "Model", values_to = "MSE") %>% 
+  ggplot(aes(x = MSE, col = Model, fill = Model)) + 
+  geom_density(adjust = 1.5, alpha = 0.3) + 
+  labs(title = "Distribution of repeated 5-fold cross-validated MSE across models",
+       x = "Cross-validated MSE",
+       y = "Density") +
+  theme(legend.position = "bottom",
+        plot.title = element_text(size= 11, hjust = 0.5))
+```
+
+![](Logistic-LASSO_files/figure-gfm/unnamed-chunk-24-2.png)<!-- -->
+
+### All coefficients by all model
+
+``` r
+table1 = cbind(glm_coeff_tib, t(nr_coeff_tib), glmnet_coeff_tib, loglasso_coeff_tib) %>% rename_at(2, ~"Newton-Raphson")
+
+knitr::kable(table1, escape = FALSE)
+```
+
+|                           | GLM binomial | Newton-Raphson |   GLMnet | Logistic-LASSO |
+| ------------------------- | -----------: | -------------: | -------: | -------------: |
+| smoothness\_mean          |       1.5725 |         1.5725 |   1.1954 |         1.0229 |
+| symmetry\_mean            |     \-0.1187 |       \-0.1187 |   0.0000 |         0.0000 |
+| fractal\_dimension\_mean  |     \-4.5061 |       \-4.5061 | \-3.7565 |       \-3.3703 |
+| texture\_se               |       0.8068 |         0.8068 |   0.5603 |         0.4466 |
+| smoothness\_se            |     \-0.8304 |       \-0.8304 | \-0.7109 |       \-0.6253 |
+| compactness\_se           |       0.3954 |         0.3954 |   0.2121 |         0.1392 |
+| concavity\_se             |     \-0.0300 |       \-0.0300 |   0.0000 |         0.0000 |
+| concave.points\_se        |       2.2856 |         2.2856 |   1.9274 |         1.7472 |
+| symmetry\_se              |     \-0.2039 |       \-0.2039 | \-0.1204 |       \-0.0615 |
+| fractal\_dimension\_se    |     \-0.7551 |       \-0.7551 | \-0.4053 |       \-0.2821 |
+| smoothness\_worst         |       0.7859 |         0.7859 |   0.8616 |         0.8577 |
+| symmetry\_worst           |       1.0091 |         1.0091 |   0.7842 |         0.7050 |
+| fractal\_dimension\_worst |       2.8346 |         2.8346 |   2.2461 |         1.9924 |
+| intercept                 |     \-1.5278 |       \-1.5278 | \-1.3218 |       \-1.1624 |
