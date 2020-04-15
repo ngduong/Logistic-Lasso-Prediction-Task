@@ -20,6 +20,7 @@ require(MASS)
 require(pROC)
 library(corrplot)
 library(corrr)
+library(ggcorrplot)
 ```
 
 Data import and cleaning 
@@ -51,13 +52,13 @@ bcdf_fin = cbind(bcdf[1], bcdf_x)
 Investigate multicollinearity problem
 
 ```{r warning = FALSE, message = FALSE}
-bcdf_fin %>% dplyr::select(-diagnosis) %>%  #filter only numeric variables
+p1 <- bcdf_fin %>% dplyr::select(-diagnosis) %>%  #filter only numeric variables
   cor() %>%   
   #compute correlation matrix
-  corrplot(method = "circle",         #represent correlation in "circle", size = magnitude 
-           type = "upper", 
-           diag=FALSE
-           )
+  ggcorrplot(.,ggtheme = ggplot2::theme_gray,
+             colors = c("#6D9EC1", "white", "#E46726"),
+             tl.cex = 6)
+ggsave("plot1.pdf", p1, width = 8.3, height = 6.3) 
 #We can see that there are some very strong correlations between certain variables
 ```
 
@@ -252,7 +253,7 @@ path_df = as.data.frame(path_df)
 
 Plot the path
 ```{r warning = FALSE, message = FALSE}
-path_df %>% 
+p2 = path_df %>% 
   pivot_longer(2:ncol(path_df), 
                names_to = "Predictors",
                values_to = "estimate") %>% 
@@ -260,6 +261,8 @@ path_df %>%
   geom_line() + 
   labs(x = "Log(lambda)",
        y = "Coefficient Estimate") 
+ggsave("plot2.pdf", p2, width = 8.3, height = 6.3) 
+
 ```
 
 #Cross validation
@@ -311,13 +314,15 @@ log(best.ll.lambda)
 
 ### Visualize CV RMSE 
 ```{r warning = FALSE, message = FALSE}
-cv_res %>% ggplot(aes(x = log(cv_res$grid), y = cv_res$mse)) + 
+p3 = cv_res %>% ggplot(aes(x = log(cv_res$grid), y = cv_res$mse)) + 
   geom_errorbar(aes(ymin = cv_res$mse-cv_res$rmse.std.error,
                     ymax = cv_res$mse+cv_res$rmse.std.error),col = 1) + 
   geom_line() + geom_point(size = 0.8, col = 4) + 
   labs(x = "Log(lambda)", y = "Mean-Squared Error") + 
   geom_vline(xintercept = as.numeric(log(best.ll.lambda)), col = 2) + 
   geom_text(aes(x=as.numeric(log(best.ll.lambda)), label="log(lambda) = -5.4", y=0.22), col = 2, vjust = 2, text=element_text(size=11))
+
+ggsave("plot3.pdf", p3, width = 8.3, height = 6.3) 
 ```
 
 

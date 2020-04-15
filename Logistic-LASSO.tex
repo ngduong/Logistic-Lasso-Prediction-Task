@@ -152,20 +152,13 @@ Investigate multicollinearity problem
 
 \begin{Shaded}
 \begin{Highlighting}[]
-\NormalTok{bcdf_fin }\OperatorTok{%>%}\StringTok{ }\NormalTok{dplyr}\OperatorTok{::}\KeywordTok{select}\NormalTok{(}\OperatorTok{-}\NormalTok{diagnosis) }\OperatorTok{%>%}\StringTok{  }\CommentTok{#filter only numeric variables}
+\NormalTok{p1 <-}\StringTok{ }\NormalTok{bcdf_fin }\OperatorTok{%>%}\StringTok{ }\NormalTok{dplyr}\OperatorTok{::}\KeywordTok{select}\NormalTok{(}\OperatorTok{-}\NormalTok{diagnosis) }\OperatorTok{%>%}\StringTok{  }\CommentTok{#filter only numeric variables}
 \StringTok{  }\KeywordTok{cor}\NormalTok{() }\OperatorTok{%>%}\StringTok{   }
 \StringTok{  }\CommentTok{#compute correlation matrix}
-\StringTok{  }\KeywordTok{corrplot}\NormalTok{(}\DataTypeTok{method =} \StringTok{"circle"}\NormalTok{,         }\CommentTok{#represent correlation in "circle", size = magnitude }
-           \DataTypeTok{type =} \StringTok{"upper"}\NormalTok{, }
-           \DataTypeTok{diag=}\OtherTok{FALSE}
-\NormalTok{           )}
-\end{Highlighting}
-\end{Shaded}
-
-\includegraphics{Logistic-LASSO_files/figure-latex/unnamed-chunk-3-1.pdf}
-
-\begin{Shaded}
-\begin{Highlighting}[]
+\StringTok{  }\KeywordTok{ggcorrplot}\NormalTok{(.,}\DataTypeTok{ggtheme =}\NormalTok{ ggplot2}\OperatorTok{::}\NormalTok{theme_gray,}
+             \DataTypeTok{colors =} \KeywordTok{c}\NormalTok{(}\StringTok{"#6D9EC1"}\NormalTok{, }\StringTok{"white"}\NormalTok{, }\StringTok{"#E46726"}\NormalTok{),}
+             \DataTypeTok{tl.cex =} \DecValTok{6}\NormalTok{)}
+\KeywordTok{ggsave}\NormalTok{(}\StringTok{"plot1.pdf"}\NormalTok{, p1, }\DataTypeTok{width =} \FloatTok{8.3}\NormalTok{, }\DataTypeTok{height =} \FloatTok{6.3}\NormalTok{) }
 \CommentTok{#We can see that there are some very strong correlations between certain variables}
 \end{Highlighting}
 \end{Shaded}
@@ -437,7 +430,7 @@ Plot the path
 
 \begin{Shaded}
 \begin{Highlighting}[]
-\NormalTok{path_df }\OperatorTok{%>%}\StringTok{ }
+\NormalTok{p2 =}\StringTok{ }\NormalTok{path_df }\OperatorTok{%>%}\StringTok{ }
 \StringTok{  }\KeywordTok{pivot_longer}\NormalTok{(}\DecValTok{2}\OperatorTok{:}\KeywordTok{ncol}\NormalTok{(path_df), }
                \DataTypeTok{names_to =} \StringTok{"Predictors"}\NormalTok{,}
                \DataTypeTok{values_to =} \StringTok{"estimate"}\NormalTok{) }\OperatorTok{%>%}\StringTok{ }
@@ -445,10 +438,9 @@ Plot the path
 \StringTok{  }\KeywordTok{geom_line}\NormalTok{() }\OperatorTok{+}\StringTok{ }
 \StringTok{  }\KeywordTok{labs}\NormalTok{(}\DataTypeTok{x =} \StringTok{"Log(lambda)"}\NormalTok{,}
        \DataTypeTok{y =} \StringTok{"Coefficient Estimate"}\NormalTok{) }
+\KeywordTok{ggsave}\NormalTok{(}\StringTok{"plot2.pdf"}\NormalTok{, p2, }\DataTypeTok{width =} \FloatTok{8.3}\NormalTok{, }\DataTypeTok{height =} \FloatTok{6.3}\NormalTok{) }
 \end{Highlighting}
 \end{Shaded}
-
-\includegraphics{Logistic-LASSO_files/figure-latex/unnamed-chunk-12-1.pdf}
 
 \section{Cross validation}\label{cross-validation}
 
@@ -525,17 +517,17 @@ Find best lambda
 
 \begin{Shaded}
 \begin{Highlighting}[]
-\NormalTok{cv_res }\OperatorTok{%>%}\StringTok{ }\KeywordTok{ggplot}\NormalTok{(}\KeywordTok{aes}\NormalTok{(}\DataTypeTok{x =} \KeywordTok{log}\NormalTok{(cv_res}\OperatorTok{$}\NormalTok{grid), }\DataTypeTok{y =}\NormalTok{ cv_res}\OperatorTok{$}\NormalTok{mse)) }\OperatorTok{+}\StringTok{ }
+\NormalTok{p3 =}\StringTok{ }\NormalTok{cv_res }\OperatorTok{%>%}\StringTok{ }\KeywordTok{ggplot}\NormalTok{(}\KeywordTok{aes}\NormalTok{(}\DataTypeTok{x =} \KeywordTok{log}\NormalTok{(cv_res}\OperatorTok{$}\NormalTok{grid), }\DataTypeTok{y =}\NormalTok{ cv_res}\OperatorTok{$}\NormalTok{mse)) }\OperatorTok{+}\StringTok{ }
 \StringTok{  }\KeywordTok{geom_errorbar}\NormalTok{(}\KeywordTok{aes}\NormalTok{(}\DataTypeTok{ymin =}\NormalTok{ cv_res}\OperatorTok{$}\NormalTok{mse}\OperatorTok{-}\NormalTok{cv_res}\OperatorTok{$}\NormalTok{rmse.std.error,}
                     \DataTypeTok{ymax =}\NormalTok{ cv_res}\OperatorTok{$}\NormalTok{mse}\OperatorTok{+}\NormalTok{cv_res}\OperatorTok{$}\NormalTok{rmse.std.error),}\DataTypeTok{col =} \DecValTok{1}\NormalTok{) }\OperatorTok{+}\StringTok{ }
 \StringTok{  }\KeywordTok{geom_line}\NormalTok{() }\OperatorTok{+}\StringTok{ }\KeywordTok{geom_point}\NormalTok{(}\DataTypeTok{size =} \FloatTok{0.8}\NormalTok{, }\DataTypeTok{col =} \DecValTok{4}\NormalTok{) }\OperatorTok{+}\StringTok{ }
 \StringTok{  }\KeywordTok{labs}\NormalTok{(}\DataTypeTok{x =} \StringTok{"Log(lambda)"}\NormalTok{, }\DataTypeTok{y =} \StringTok{"Mean-Squared Error"}\NormalTok{) }\OperatorTok{+}\StringTok{ }
 \StringTok{  }\KeywordTok{geom_vline}\NormalTok{(}\DataTypeTok{xintercept =} \KeywordTok{as.numeric}\NormalTok{(}\KeywordTok{log}\NormalTok{(best.ll.lambda)), }\DataTypeTok{col =} \DecValTok{2}\NormalTok{) }\OperatorTok{+}\StringTok{ }
 \StringTok{  }\KeywordTok{geom_text}\NormalTok{(}\KeywordTok{aes}\NormalTok{(}\DataTypeTok{x=}\KeywordTok{as.numeric}\NormalTok{(}\KeywordTok{log}\NormalTok{(best.ll.lambda)), }\DataTypeTok{label=}\StringTok{"log(lambda) = -5.4"}\NormalTok{, }\DataTypeTok{y=}\FloatTok{0.22}\NormalTok{), }\DataTypeTok{col =} \DecValTok{2}\NormalTok{, }\DataTypeTok{vjust =} \DecValTok{2}\NormalTok{, }\DataTypeTok{text=}\KeywordTok{element_text}\NormalTok{(}\DataTypeTok{size=}\DecValTok{11}\NormalTok{))}
+
+\KeywordTok{ggsave}\NormalTok{(}\StringTok{"plot3.pdf"}\NormalTok{, p3, }\DataTypeTok{width =} \FloatTok{8.3}\NormalTok{, }\DataTypeTok{height =} \FloatTok{6.3}\NormalTok{) }
 \end{Highlighting}
 \end{Shaded}
-
-\includegraphics{Logistic-LASSO_files/figure-latex/unnamed-chunk-15-1.pdf}
 
 \subsubsection{Perform cross-validation logistic LASSO in glmnet (for
 comparison)}\label{perform-cross-validation-logistic-lasso-in-glmnet-for-comparison}
