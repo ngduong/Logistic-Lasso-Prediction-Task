@@ -1,5 +1,5 @@
 ---
-title: "Final Report"
+title: "Draft Report"
 author: "Ngoc Duong, Cui Sitong (sc4636), Xinru Wang(xw2676), Jin Ge"
 date: "4/15/2020"
 output:
@@ -13,11 +13,11 @@ knitr::opts_chunk$set(echo = TRUE)
 
 ## Objective
 
-Breast cancer is one of the most common cancers in women. However, early diagnoses of breast cancer can aid in reducing the mortatlity rate. Additionally, advances in imaging technologies and statistical methodologies have allowed for higher-quality data and novel models that could improve the precision of breast cancer diagnoses. The purpose of our project is to build and compare different models in classifying breast cancer tumor as benignant or malignant based on image-based predictors. Specifically, we are look to build a logistic regression model using Newton Raphson method, as a regularized logistic-LASSO usisng coordinate-wise optimization algorithm. 
+Breast cancer is one of the most common cancers in women. However, early diagnoses of breast cancer can aid in reducing the mortatlity rate. Additionally, advances in imaging technologies and statistical methodologies have allowed for higher-quality data and novel models that could improve the precision of breast cancer diagnoses. The purpose of our project is to build and compare different models in classifying breast cancer tumor as benignant or malignant based on image-based predictors. Specifically, we are look to build a logistic regression model using Newton-Raphson method, and a logistic-LASSO model using coordinate-wise optimization algorithm. 
 
 ### Dataset
 
-There were 569 images collected independently from different patients, 212 of whom had malignant tumor and 357 were benign cases. The images were broken down into 30 predictors, corresponding to the mean, standard deviation, and largest values (points on the tails) of the following 10 features:
+There were 569 images collected independently from patients, 212 of whom had malignant tumor and 357 were benign cases. The images were broken down into 30 predictors, corresponding to the mean, standard deviation, and largest values (points on the tails) of the following 10 features:
 
 \begin{itemize}
 \item radius (mean of distances from center to points on the perimeter)
@@ -35,7 +35,7 @@ There were 569 images collected independently from different patients, 212 of wh
 
 ### Data cleaning 
 
-As shown in the pairwise correlation plot (\textbf{Fig. 1}), we can observe the presence of some multicollinearity among the predictors. For instance, the radius_mean variable has almost perfect correlation of 1 and 0.99 with perimeter_mean and area_mean variables, respectively. We then left out variables that are correlated by more than 85% with other predictors. The final dataset contained 13 predictors. 
+As shown in the pairwise correlation plot (\textbf{Fig. 1}), we can observe the presence of some strong multicollinearity among the predictors. For instance, the radius_mean variable has almost perfect correlation of 1 and 0.99 with perimeter_mean and area_mean variables, respectively. We then left out variables that are correlated by more than 85% with other predictors. The final dataset contained 13 predictors. 
 
 Next, considering the LASSO is not scale-invariant, we standardized the design matrix. This is to ensure comparability of estimates by the logistic-LASSO model and Newton-Raphson/logistic regression model. The standardization formula is as follows:
 
@@ -58,7 +58,7 @@ $$H: \bigtriangledown^2 l(y;\beta) = -\sum^n_{i = 1} \mu_{(i)} (1 - \mu_{(i)}) x
 where $S = diag(\mu_{(i)} (1 - \mu_{(i)}))$, and
 $$\mu_{(i)} = p_{\theta}(y = 1|x) = \frac{e^{X_{i}\beta}}{1+e^{X_{i}\beta}}$$
 
-Since we have several predictors, we want to optimize several likehood functions simultaneously. This is equivalent to solving a system of log-likelihood equations $\bigtriangledown l(y;\beta_{j}) = 0$ where $j = 1,2,...13$. To achieve this, we use the Newton Raphson algorithm.  
+Since we have several predictors, we want to optimize several likehood functions simultaneously. This is equivalent to solving a system of log-likelihood equations $\bigtriangledown l(y;\beta_{j}) = 0$ where $j = 1,2,...13$. To achieve this, we used the Newton Raphson algorithm.  
 
 #### Newton-Raphson Algorithm 
 
@@ -66,7 +66,9 @@ Starting at a current point $\beta_{i}$, we can expand the log-likelihood functi
 
  $\beta_{i+1} = \beta_{i}- [\bigtriangledown^2 l(\beta_{i})]^{-1} \bigtriangledown l(\beta_{i})$.
 
-However, when implementing the algorithm, we need to check at every step, that the updating direction (for $\beta_{i+1}$) is heading to a maximum, and that the point is moving sufficient distances towards the maximum so we do not miss it. Therefore, we also implemented some modifications, including gradient descent and step-halving. 
+* Modifications to Newton-Raphson
+
+When implementing Newton-Raphson, we need to check at every step, that the updating direction (for $\beta_{i+1}$) is heading to a maximum, and that the point is moving sufficient distances towards the maximum so we do not miss it. Therefore, we also implemented some modifications, specifically gradient descent and step-halving. 
 
 * For step-halving, we modified the updating function for $\beta_{i+1}$ as follows:
 
@@ -76,15 +78,26 @@ $\beta_{i+1} = \beta_{i}-\lambda [\bigtriangledown^2 l(y;\beta_{i})]^{-1} \bigtr
 
 ### Logistic-LASSO model
 
-The LASSO method aims to minimizes the following equation with a penalty term: 
+The LASSO method aims to minimizes the following equation with a penalty term,  a quardratic approximation to the negative log likelihood by taylor expansion around the current estimate, which is:
 
-$f(\beta) = \frac{1}{2n}\Sigma^n_{i=1}w_{i}(y_{i}-\Sigma^p_{j=1}x_{i,j}\beta_{j})^2 + \lambda \Sigma^p_{j=1}|\beta_{j}|$ for some $\lambda \geq 0$ 
+\[
+\begin{aligned}
+f(\beta) = \frac{1}{2n}\Sigma^n_{i=1}w_{i}(z_{i}-\Sigma^p_{j=1}x_{i,j}\beta_{j})^2 + \lambda \Sigma^p_{j=1}|\beta_{j}|, \lambda \geq 0
+\end{aligned}
+\]
 
-where $w_{i}$ is the working weights, defined as $p(1-p)$ (p is the probability of event for each observation).
+where 
 
-Each $\beta_{i}$ is optimized using this equation:
+* $w_{i}$ are the working weights, defined as $\tilde{p}(x_i)(1-\tilde{p}(x_i))$, and $p_{i}$ is the probability of event for each observation
+* $z_i$ are the working response = \tilde{\beta}_0+ x_i^T\tilde{\beta} + \frac{y_i-\tilde{p}(x_i)}{\tilde{p}(x_i)(1-\tilde{p}(x_i))}, \text{working response}\\
 
-$\tilde\beta_{i} = \frac{S(\Sigma_{i}w_{i}x_{i,j}(y_{i}-\tilde{y}^{(-j)}_{i}),\lambda)}{\Sigma_{i}w_{i}x_{i,j}^2}$
+Then, each $\beta_{i}$ is optimized using the folllowing equation:
+
+\[
+\begin{aligned}
+\tilde\beta_{i} = \frac{S(\Sigma_{i}w_{i}x_{i,j}(y_{i}-\tilde{y}^{(-j)}_{i}),\lambda)}{\Sigma_{i}w_{i}x_{i,j}^2}
+\end{aligned}
+\]
 
 where $S(\hat\beta, \gamma)$ is called soft-threshold and is defined as $S(\hat{\beta}, \lambda) = sign(\hat{\beta})(|\hat{\beta}| - \lambda)_{+}$
 
@@ -107,11 +120,11 @@ $$\max_{\beta \in \mathbb{R}^{p+1}} \{ f(\beta) + \lambda P(\beta)\}$$
 
 ## Results
 
-The coefficient estimates can be found in (\textbf{Fig. 5}). Newton-Raphson algorithm gives quite similar estimates to those in the logistic regression model produced by GLM package. For the logistic-LASSO model, we can see the coefficient estimates are approximately close to the ones produced by GLMnet with 5-fold cross-validation. They do not exactly match, however, due to the potential dissimilarities in set-up conditions in our implementation and theirs.
+The coefficient estimates can be found in (\textbf{Table 1}). Newton-Raphson algorithm gives quite similar estimates to those in the logistic regression model produced by GLM package. For the logistic-LASSO model, we can see the coefficient estimates are approximately close to the ones produced by GLMnet with 5-fold cross-validation. They do not exactly match, however, due to the potential dissimilarities in set-up conditions in our implementation and theirs.
 
-The path of solution could be found in (\textbf{Fig. 2}), and the distribution of cross-validated MSEs produced by the hand-built logistic-LASSO model could be found in (\textbf{Fig. 3}). Five-fold cross-validation suggested the best $\lambda$ is 0.00454, which corresponds to the lowest cross-validated MSE. A similar distribution of cross-validated MSEs produced by the GLMNet package in R can be found in (\textbf{Fig. 4}). Here, 5-fold cross-validation suggested the best $\lambda$ is 0.0037. 
+The path of solution could be found in (\textbf{Figure 3}), and the distribution of cross-validated MSEs produced by the hand-built logistic-LASSO model could be found in (\textbf{Figure 4}). Five-fold cross-validation suggested the best $\lambda$ is 0.00454, which corresponds to the lowest cross-validated MSE. A similar distribution of cross-validated MSEs produced by the GLMNet package in R can be found in (\textbf{Fig. 4}). Here, 5-fold cross-validation suggested the best $\lambda$ is 0.0037. 
 
-Lastly, we wanted to compare the prediction performance using MSE as a criteria. We examined this undertwo scenarios, one is with 5-fold cross-validation, and the other is 5-fold repeated cross-validation (number of repeats is 5). These distributions can be found in Figure 3 and 4, respectively. We noticed that the cross-validated MSE of both Newton Raphson and logistic-LASSO are similary distributed, although the latter seems to perform slightly less well. On the other hand, GLMnet gives the most consistently well performance under both scenarios. Nonetheless, the errors were all in close and acceptable proximity with one another so we are confident they all very good discriminatory power. 
+Lastly, we wanted to compare the prediction performance using MSE as a criteria. We examined this undertwo scenarios, one is with 5-fold cross-validation, and the other is 5-fold repeated cross-validation (number of repeats is 5). These distributions can be found in Figure 3 and 4, respectively. We noticed that the cross-validated MSE of both Newton Raphson and logistic-LASSO are similary distributed, although the latter seems to perform slightly less well. On the other hand, GLMnet gives the most consistently well performance. Nonetheless, the errors were all in close proximity with one another so we are confident they all very good discriminatory power. 
 
 ### Conclusions 
 
@@ -143,7 +156,12 @@ knitr::include_graphics("plot4.pdf")
 knitr::include_graphics("table1.png")
 ```
 
-
+\[
+\begin{aligned}
+& z_i = \tilde{\beta}_0+ x_i^T\tilde{\beta} + \frac{y_i-\tilde{p}(x_i)}{\tilde{p}(x_i)(1-\tilde{p}(x_i))}, \text{working response}\\
+& w_i = \tilde{p}(x_i)(1-\tilde{p}(x_i)), \text{working weights}
+\end{aligned}
+\]
 
 
 
