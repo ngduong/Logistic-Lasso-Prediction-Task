@@ -2,7 +2,9 @@
 title: "Logistic-LASSO Breast Cancer Classification Task"
 author: "Ngoc Duong - nqd2000"
 date: "3/25/2020"
-output: github_document
+output: 
+  pdf_document:
+    keep_tex: yes
 editor_options: 
   chunk_output_type: console
 ---
@@ -21,7 +23,7 @@ library(corrr)
 ```
 
 Data import and cleaning 
-```{r}
+```{r warning = FALSE, message = FALSE}
 breast_cancer_data = read.csv("./breast-cancer-1.csv")
 
 bcdf = breast_cancer_data %>% 
@@ -32,7 +34,7 @@ bcdf = breast_cancer_data %>%
 
 Standardize design matrix (because although logistic is scale-invariant, LASSO is not, this is to ensure comparability of estimates by these different models)
 
-```{r}
+```{r warning = FALSE, message = FALSE}
 pred_names = bcdf %>% dplyr::select(-diagnosis) %>% names() %>% as.vector()
 bcdf_x = NULL
 
@@ -46,16 +48,9 @@ colnames(bcdf_x) <- c(pred_names)
 bcdf_fin = cbind(bcdf[1], bcdf_x)
 ```
 
-Try to git a logistic regression model using glm package. The warning messages show algorithm did not converge, potentially due to multicollinearity.
-
-```{r}
-log.mod = glm(diagnosis~., data = bcdf_fin, family = "binomial")
-summary(log.mod)
-```
-
 Investigate multicollinearity problem
 
-```{r}
+```{r warning = FALSE, message = FALSE}
 bcdf_fin %>% dplyr::select(-diagnosis) %>%  #filter only numeric variables
   cor() %>%   
   #compute correlation matrix
@@ -66,8 +61,7 @@ bcdf_fin %>% dplyr::select(-diagnosis) %>%  #filter only numeric variables
 #We can see that there are some very strong correlations between certain variables
 ```
 
-
-Find correlation pairs that are above 0.6 to leave out of the dataset
+Find correlation pairs that are above 0.85 to leave out of the dataset
 
 ```{r warning = FALSE, message = FALSE}
 #obtain list of variables that are correlated with one another whose correlation is at least 0.85
@@ -90,7 +84,7 @@ Xmat_int = Xmat_no_int %>% mutate(intercept = 1)
 ```
 
 Looking at logistic regression results by glm 
-```{r}
+```{r warning = FALSE, message = FALSE}
 log.mod = glm(diagnosis~., data = full_data, family = "binomial")
 summary(log.mod)
 
@@ -98,29 +92,19 @@ glm_coeff_tib = tibble(`GLM binomial` = round(replace(log.mod$coeff %>% as.numer
 ```
 
 ### Task 1
-\item Build a logistic model to classify the images into  malignant/benign, and write down your likelihood function, its gradient and Hessian matrix.  
-
-
 Function to return log-likelihood, gradient, and Hessian matrix of logistic regression
-```{r}
+
+```{r warning = FALSE, message = FALSE}
 logisticstuff <- function(y, x, betavec) {
   u <- x %*% betavec
   expu <- exp(u)
   loglik.ind = NULL
-  #for(i in 1:length(y)) {
-    #loglik.ind[i] = y[i]*u[i] - log(1+ expu)
-    #}
-  #loglik = sum(loglik.ind)
+
   loglik = t(u) %*% y - sum((log(1+expu)))
   # Log-likelihood at betavec
   
   p <- expu / (1 + expu)
   # P(Y_i=1|x_i)
-  
-  #grad = NULL
-  #for(i in 1:length(betavec)){
-    #grad[i] = sum(t(x[,i])%*%(dat$y - p))
-  #}
   grad = t(x) %*% (y-p)
    #gradient at betavec
   
@@ -130,9 +114,9 @@ logisticstuff <- function(y, x, betavec) {
 }
 ```
 
-Newton-Raphson with gradient ascent and step-halving
+Newton-Raphson with gradient descent and step-halving
 
-```{r}
+```{r warning = FALSE, message = FALSE}
 NewtonRaphson <- function(y, x, func, start, tol=1e-10, maxiter = 200) {
   i <- 0
   cur <- start
@@ -172,7 +156,7 @@ NewtonRaphson <- function(y, x, func, start, tol=1e-10, maxiter = 200) {
 ```
 
 Test on dataset 
-```{r}
+```{r warning = FALSE, message = FALSE}
 newton_raph_res = NewtonRaphson(y = full_data$diagnosis, as.matrix(Xmat_int), logisticstuff, start = rep(0, ncol(Xmat_int)))
 
 #convert to data frame 
@@ -188,9 +172,9 @@ nr_coeff_tib = as_tibble(round(newton_raph_coeff,4))
 
 Logistic-LASSO
 
-Coordinate-wise descent LASSO
+Coordinate-wise descent algorithm
 
-```{r}
+```{r warning = FALSE, message = FALSE}
 soft_threshold = function(beta, lambda) {
   ifelse(abs(beta)>lambda && beta > 0,
          beta-lambda, 
@@ -216,7 +200,7 @@ coord.lasso = function(lambda, y, X, betavec, tol = 1e-7, maxiter = 200){
       weight = p*(1-p)
       
       #avoid coefficients from divergence to achieve final fitted probabilities of 0 or 1
-      weight = ifelse(abs(weight-0) < 1e-4, 1e-4, weight)
+      weight = ifelse(abs(weight-0) < 1e-6, 1e-6, weight)
       
       #calculate working responses 
       resp = u + (y-p)/weight
@@ -234,7 +218,7 @@ coord.lasso = function(lambda, y, X, betavec, tol = 1e-7, maxiter = 200){
 }
 ```
 
-```{r}
+```{r warning = FALSE, message = FALSE}
 coord.lasso(lambda = 0.3, 
             y = full_data$diagnosis, 
             X = as.matrix(Xmat_int), 
@@ -243,9 +227,9 @@ coord.lasso(lambda = 0.3,
 
 ### Check for convergence
 
-Compute the solution on a grid of lambdas. Pathwise coordinate optimization to get PATH OF SOLUTIONS
+Compute the solution on a grid of lambdas. Pathwise coordinate optimization to get path of solutions
 
-```{r}
+```{r warning = FALSE, message = FALSE}
 path = function(X, y, tunegrid){
   coeff = NULL
   tunegrid = as.vector(tunegrid)
@@ -267,7 +251,7 @@ path_df = as.data.frame(path_df)
 ```
 
 Plot the path
-```{r}
+```{r warning = FALSE, message = FALSE}
 path_df %>% 
   pivot_longer(2:ncol(path_df), 
                names_to = "Predictors",
@@ -280,7 +264,7 @@ path_df %>%
 
 #Cross validation
 
-```{r}
+```{r warning = FALSE, message = FALSE}
 set.seed(2020)
 mses = NULL
 mse = NULL
@@ -319,13 +303,13 @@ cv_res = crossval(X = Xmat_int, y = full_data$diagnosis, tunegrid = exp(seq(-9,-
 ```
 
 Find best lambda 
-```{r}
+```{r warning = FALSE, message = FALSE}
 best.ll.lambda = cv_res %>% filter(mse == min(cv_res$mse)) %>% dplyr::select(grid)
 best.ll.lambda
 log(best.ll.lambda)
 ```
 
-Visualize CV RMSE 
+### Visualize CV RMSE 
 ```{r warning = FALSE, message = FALSE}
 cv_res %>% ggplot(aes(x = log(cv_res$grid), y = cv_res$mse)) + 
   geom_errorbar(aes(ymin = cv_res$mse-cv_res$rmse.std.error,
@@ -337,13 +321,14 @@ cv_res %>% ggplot(aes(x = log(cv_res$grid), y = cv_res$mse)) +
 ```
 
 
-# Perform cross-validation logistic LASSO in glmnet (for comparison)
+### Perform cross-validation logistic LASSO in glmnet (for comparison)
 
-```{r}
+```{r warning = FALSE, message = FALSE}
 set.seed(2020)
 cv.lasso <- cv.glmnet(as.matrix(Xmat_no_int), y = as.factor(full_data$diagnosis),
                       family="binomial",
                       type.measure = "mse",
+                      nfolds = 5,
                       alpha = 1, 
                       lambda = exp(seq(-9, -2, length=100)))
 
@@ -363,7 +348,7 @@ glmnet_coeff_tib = tibble(`GLMnet` = round(glmnet_coeff,4))
 
 ### Calculate MSE for Logistic-Lasso and Newton Raphson
 
-```{r}
+```{r warning = FALSE, message = FALSE}
 pred_error = function(y, X, betavec) {
   expu = exp(as.matrix(X) %*% betavec)
   p = expu/(1+expu)
@@ -374,7 +359,7 @@ pred_error = function(y, X, betavec) {
 
 ### Newton Raphon's MSE 
 
-```{r}
+```{r warning = FALSE, message = FALSE}
 newton_raph_vec = newton_raph_res[c(nrow(newton_raph_res)),3:ncol(newton_raph_res)]
 
 #nr_coeff_tib = tibble(`Newton-Raphson` = round(newton_raph_res[c(nrow(newton_raph_res)),3:ncol(newton_raph_res)]),4) 
@@ -384,7 +369,7 @@ newton_raph_error
 
 ### Logistic-Lasso's MSE
 
-```{r}
+```{r warning = FALSE, message = FALSE}
 loglasso_betas = coord.lasso(lambda = as.numeric(best.ll.lambda), 
             y = full_data$diagnosis, 
             X = as.matrix(Xmat_int), 
@@ -401,13 +386,13 @@ loglasso_error
 ```
 
 GLMNet's MSE
-```{r}
+```{r warning = FALSE, message = FALSE}
 glmnet_error = pred_error(full_data$diagnosis, Xmat_int, glmnet_coeff)
 glmnet_error
 ```
 
 ### Summary table
-```{r}
+```{r warning = FALSE, message = FALSE}
 log_lasso = c(error = round(loglasso_error,4))
 newton_raphson = c(error = round(newton_raph_error,4))
 glmnet = c(error = round(glmnet_error,4))
@@ -422,7 +407,7 @@ knitr::kable(table2, escape = FALSE)
 
 ### Cross-validation
 
-```{r}
+```{r warning = FALSE, message = FALSE}
 nr_mses = NULL
 ll_mses = NULL
 glmnet_mses = NULL
@@ -474,7 +459,7 @@ rep_mse_comp_df = rep_cv(X = Xmat_int, y = full_data$diagnosis, fold_num = 5, n 
 
 
 ### Visualize error comparisons
-```{r}
+```{r warning = FALSE, message = FALSE}
 mse_comp_df %>% 
   pivot_longer(1:3, names_to = "Model", values_to = "MSE") %>% 
   ggplot(aes(x = MSE, col = Model, fill = Model)) + 
@@ -500,12 +485,20 @@ rep_mse_comp_df %>%
 
 ### All coefficients by all model 
 
-```{r}
+```{r warning = FALSE, message = FALSE}
 table1 = cbind(glm_coeff_tib, t(nr_coeff_tib), glmnet_coeff_tib, loglasso_coeff_tib) %>% rename_at(2, ~"Newton-Raphson")
 
 knitr::kable(table1, escape = FALSE)
 ```
 
 
+### ROC curves 
+
+```{r warning = FALSE, message = FALSE}
+nr_pred_prob <- predict(log.mod, newdata = full_data, type = "response")
+
+roc.glm <- roc(full_data$diagnosis, nr_pred_prob)
+plot(roc.glm, legacy.axes = TRUE, print.auc = TRUE)
+```
 
 
