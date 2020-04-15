@@ -1,4 +1,4 @@
-This is XeTeX, Version 3.14159265-2.6-0.99999 (TeX Live 2018) (preloaded format=xelatex 2018.4.16)  15 APR 2020 19:28
+This is XeTeX, Version 3.14159265-2.6-0.99999 (TeX Live 2018) (preloaded format=xelatex 2018.4.16)  15 APR 2020 19:41
 entering extended mode
  restricted \write18 enabled.
  %&-line parsing enabled.
@@ -826,8 +826,7 @@ Package grffile Info: Option `multidot' is set to `true'.
 Package grffile Info: Option `extendedchars' is set to `false'.
 Package grffile Info: Option `space' is set to `true'.
 Package grffile Info: \Gin@ii of package `graphicx' fixed on input line 494.
-)
-No file report.aux.
+) (./report.aux)
 \openout1 = `report.aux'.
 
 LaTeX Font Info:    Checking defaults for OML/cmm/m/it on input line 71.
@@ -1136,11 +1135,9 @@ Package: gettitlestring 2016/05/16 v1.5 Cleanup title references (HO)
 LaTeX Info: Redefining \ref on input line 71.
 LaTeX Info: Redefining \pageref on input line 71.
 LaTeX Info: Redefining \nameref on input line 71.
+(./report.out) (./report.out)
 \@outlinefile=\write3
 \openout3 = `report.out'.
-
-
-Package hyperref Warning: Rerun to get /PageLabels entry.
 
 *geometry* driver: auto-detecting
 *geometry* detected driver: xetex
@@ -1228,19 +1225,48 @@ LaTeX Font Info:    Font shape `TU/latinmodern-math.otf(3)/m/n' will be
 (Font)              scaled to size 4.98067pt on input line 125.
 [1
 
-] [2]
-! Missing $ inserted.
-<inserted text> 
-                $
-l.229   \(z_i\) are the working response = \tilde
-                                                 {\beta}\_0+ 
-Here is how much of TeX's memory you used:
- 24688 strings out of 492970
- 456831 string characters out of 6133938
- 670987 words of memory out of 5000000
- 28517 multiletter control sequences out of 15000+600000
- 536537 words of font info for 66 fonts, out of 8000000 for 9000
- 1348 hyphenation exceptions out of 8191
- 59i,7n,117p,10415b,345s stack positions out of 5000i,500n,10000p,200000b,80000s
+] [2] [3] [4]
+File: plot1.pdf Graphic file (type pdf)
+<use plot1.pdf>
+File: plot2.pdf Graphic file (type pdf)
+<use plot2.pdf>
 
-Output written on report.pdf (2 pages).
+LaTeX Warning: `h' float specifier changed to `ht'.
+
+File: plot3.pdf Graphic file (type pdf)
+<use plot3.pdf>
+
+LaTeX Warning: `h' float specifier changed to `ht'.
+
+File: plot4.pdf Graphic file (type pdf)
+<use plot4.pdf>
+
+LaTeX Warning: `h' float specifier changed to `ht'.
+
+File: table1.png Graphic file (type bmp)
+<table1.png>
+
+LaTeX Warning: `h' float specifier changed to `ht'.
+
+Package atveryend Info: Empty hook `BeforeClearDocument' on input line 365.
+[5
+
+] [6] [7]
+Package atveryend Info: Empty hook `AfterLastShipout' on input line 365.
+(./report.aux)
+Package atveryend Info: Empty hook `AtVeryEndDocument' on input line 365.
+Package atveryend Info: Executing hook `AtEndAfterFileList' on input line 365.
+Package rerunfilecheck Info: File `report.out' has not changed.
+(rerunfilecheck)             Checksum: E0E1EDCF107A64C0A51202765145EC02.
+Package atveryend Info: Empty hook `AtVeryVeryEnd' on input line 365.
+ ) 
+Here is how much of TeX's memory you used:
+ 24749 strings out of 492970
+ 457782 string characters out of 6133938
+ 672752 words of memory out of 5000000
+ 28556 multiletter control sequences out of 15000+600000
+ 536553 words of font info for 68 fonts, out of 8000000 for 9000
+ 1348 hyphenation exceptions out of 8191
+ 59i,9n,117p,10415b,345s stack positions out of 5000i,500n,10000p,200000b,80000s
+
+Output written on report.pdf (7 pages).

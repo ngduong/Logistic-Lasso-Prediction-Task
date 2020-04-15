@@ -89,7 +89,7 @@ f(\beta) = \frac{1}{2n}\Sigma^n_{i=1}w_{i}(z_{i}-\Sigma^p_{j=1}x_{i,j}\beta_{j})
 where 
 
 * $w_{i}$ are the working weights, defined as $\tilde{p}(x_i)(1-\tilde{p}(x_i))$, and $p_{i}$ is the probability of event for each observation
-* $z_i$ are the working response = \tilde{\beta}_0+ x_i^T\tilde{\beta} + \frac{y_i-\tilde{p}(x_i)}{\tilde{p}(x_i)(1-\tilde{p}(x_i))}, \text{working response}\\
+* $z_i$ are the working response = $\tilde{\beta}_0+ x_i^T\tilde{\beta} + \frac{y_i-\tilde{p}(x_i)}{\tilde{p}(x_i)(1-\tilde{p}(x_i))}, \text{working response}$
 
 Then, each $\beta_{i}$ is optimized using the folllowing equation:
 
@@ -156,12 +156,6 @@ knitr::include_graphics("plot4.pdf")
 knitr::include_graphics("table1.png")
 ```
 
-\[
-\begin{aligned}
-& z_i = \tilde{\beta}_0+ x_i^T\tilde{\beta} + \frac{y_i-\tilde{p}(x_i)}{\tilde{p}(x_i)(1-\tilde{p}(x_i))}, \text{working response}\\
-& w_i = \tilde{p}(x_i)(1-\tilde{p}(x_i)), \text{working weights}
-\end{aligned}
-\]
 
 
 
