@@ -1,8 +1,10 @@
 ---
 title: "Final Report"
-author: "Ngoc Duong, Cui Sitong (sc4636), Xinru Wang, Jin Ge"
+author: "Ngoc Duong, Cui Sitong (sc4636), Xinru Wang(xw2676), Jin Ge"
 date: "4/15/2020"
-output: pdf_document
+output:
+  pdf_document:
+    latex_engine: xelatex
 ---
 
 ```{r setup, include=FALSE}
@@ -14,7 +16,6 @@ knitr::opts_chunk$set(echo = TRUE)
 Breast cancer is one of the most common cancers in women. However, early diagnoses of breast cancer can aid in reducing the mortatlity rate. Additionally, advances in imaging technologies and statistical methodologies have allowed for higher-quality data and novel models that could improve the precision of breast cancer diagnoses. The purpose of our project is to build and compare different models in classifying breast cancer tumor as benignant or malignant based on image-based predictors. Specifically, we are look to build a logistic regression model using Newton Raphson method, as a regularized logistic-LASSO usisng coordinate-wise optimization algorithm. 
 
 ### Dataset
-The data was obtained from ... 
 
 There were 569 images collected independently from different patients, 212 of whom had malignant tumor and 357 were benign cases. The images were broken down into 30 predictors, corresponding to the mean, standard deviation, and largest values (points on the tails) of the following 10 features:
 
@@ -34,7 +35,7 @@ There were 569 images collected independently from different patients, 212 of wh
 
 ### Data cleaning 
 
-As shown in the pairwise correlation plot (Figure 1), we can observe the presence of some multicollinearity among the predictors. For instance, the radius_mean variable has almost perfect correlation of 1 and 0.99 with perimeter_mean and area_mean variables, respectively. We then left out variables that are correlated by more than 85% with other predictors. The final dataset contained 13 predictors. 
+As shown in the pairwise correlation plot (\textbf{Fig. 1}), we can observe the presence of some multicollinearity among the predictors. For instance, the radius_mean variable has almost perfect correlation of 1 and 0.99 with perimeter_mean and area_mean variables, respectively. We then left out variables that are correlated by more than 85% with other predictors. The final dataset contained 13 predictors. 
 
 Next, considering the LASSO is not scale-invariant, we standardized the design matrix. This is to ensure comparability of estimates by the logistic-LASSO model and Newton-Raphson/logistic regression model. The standardization formula is as follows:
 
@@ -92,15 +93,47 @@ where $S(\hat\beta, \gamma)$ is called soft-threshold and is defined as
 
 ## Results
 
-The coefficient estimates can be found in table 1. Newton-Raphson algorithm gives quite similar estimates to those in the logistic regression model produced by GLM package. For the logistic-LASSO model, we can see the coefficient estimates are approximately close to the ones produced by GLMnet with 5-fold cross-validation. They do not exactly match, however, due to the potential dissimilarities in set-up conditions in our implementation and theirs.
+The coefficient estimates can be found in (\textbf{Fig. 5}). Newton-Raphson algorithm gives quite similar estimates to those in the logistic regression model produced by GLM package. For the logistic-LASSO model, we can see the coefficient estimates are approximately close to the ones produced by GLMnet with 5-fold cross-validation. They do not exactly match, however, due to the potential dissimilarities in set-up conditions in our implementation and theirs.
 
-The path of solution could be found in Figure 2, and the distribution of cross-validated MSEs produced by the hand-built logistic-LASSO model could be found in Figure 3. Five-fold cross-validation suggested the best $\lambda$ is 0.00454, which corresponds to the lowest cross-validated MSE. A similar distribution of cross-validated MSEs produced by the GLMNet package in R can be found in Figure 4. Here, 5-fold cross-validation suggested the best $\lambda$ is 0.0037. 
+The path of solution could be found in (\textbf{Fig. 2}), and the distribution of cross-validated MSEs produced by the hand-built logistic-LASSO model could be found in (\textbf{Fig. 3}). Five-fold cross-validation suggested the best $\lambda$ is 0.00454, which corresponds to the lowest cross-validated MSE. A similar distribution of cross-validated MSEs produced by the GLMNet package in R can be found in (\textbf{Fig. 4}). Here, 5-fold cross-validation suggested the best $\lambda$ is 0.0037. 
 
 Lastly, we wanted to compare the prediction performance using MSE as a criteria. We examined this undertwo scenarios, one is with 5-fold cross-validation, and the other is 5-fold repeated cross-validation (number of repeats is 5). These distributions can be found in Figure 3 and 4, respectively. We noticed that the cross-validated MSE of both Newton Raphson and logistic-LASSO are similary distributed, although the latter seems to perform slightly less well. On the other hand, GLMnet gives the most consistently well performance under both scenarios. Nonetheless, the errors were all in close and acceptable proximity with one another so we are confident they all very good discriminatory power. 
 
 ### Conclusions 
 
 The report aimed to explore how different models perform at the same task of classifying breast cancer tumors into benign and malignant types using various predictors derived from the tumor images. Since we have eliminated most multicollinearity at the beginning, it is reasonable to expect Newton-Raphson and logistic-LASSO to have quite similar discriminatory performance. On the other hand, we would expect to see logistic-LASSO to perform better than Newton Raphson in terms of predictive ability in the presence of higher-dimensional data, and with more correlated predictors. We will aim to explore this further as more time and bandwidth allow. All in all, these models we looked at in this report nevertheless perform decently in classifying correctly each type of breast cancer.
+
+\clearpage
+
+## Appendix
+
+### Figure
+
+```{r , echo=FALSE, fig.cap="Multicollinearity plot of the dataset", out.width='80%', fig.pos='h', fig.align = "center"}
+knitr::include_graphics("plot1.pdf")
+```
+
+```{r , echo=FALSE, fig.cap="The path of solution", out.width='70%', fig.pos='h', fig.align = "center"}
+knitr::include_graphics("plot2.pdf")
+```
+
+```{r , echo=FALSE, fig.cap="Plot of cross-validated MSEs by hand-built model", out.width='80%', fig.pos='h', fig.align = "center"}
+knitr::include_graphics("plot3.pdf")
+```
+
+```{r , echo=FALSE, fig.cap="Plot of cross-validated MSEs by the GLMNet", out.width='60%', fig.pos='h', fig.align = "center"}
+knitr::include_graphics("plot4.pdf")
+```
+
+```{r , echo=FALSE, fig.cap="The coefficient estimates of each model", out.width='80%', fig.pos='h', fig.align = "center"}
+knitr::include_graphics("table1.png")
+```
+
+
+
+
+
+
 
 
 
