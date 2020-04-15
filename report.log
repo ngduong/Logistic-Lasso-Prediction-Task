@@ -1,4 +1,4 @@
-This is XeTeX, Version 3.14159265-2.6-0.99999 (TeX Live 2018) (preloaded format=xelatex 2020.4.13)  15 APR 2020 15:42
+This is XeTeX, Version 3.14159265-2.6-0.99999 (TeX Live 2018) (preloaded format=xelatex 2020.4.13)  15 APR 2020 17:09
 entering extended mode
  restricted \write18 enabled.
  %&-line parsing enabled.
@@ -897,7 +897,7 @@ LaTeX Font Info:    External font `lmex10' loaded for size
 (Font)              <5> on input line 123.
 [1
 
-] [2] [3]
+] [2] [3] [4]
 File: plot1.pdf Graphic file (type pdf)
 <use plot1.pdf>
 File: plot2.pdf Graphic file (type pdf)
@@ -920,24 +920,24 @@ File: table1.png Graphic file (type bmp)
 
 LaTeX Warning: `h' float specifier changed to `ht'.
 
-Package atveryend Info: Empty hook `BeforeClearDocument' on input line 315.
-[4
+Package atveryend Info: Empty hook `BeforeClearDocument' on input line 331.
+[5
 
-] [5] [6]
-Package atveryend Info: Empty hook `AfterLastShipout' on input line 315.
+] [6] [7]
+Package atveryend Info: Empty hook `AfterLastShipout' on input line 331.
 (./report.aux)
-Package atveryend Info: Empty hook `AtVeryEndDocument' on input line 315.
-Package atveryend Info: Executing hook `AtEndAfterFileList' on input line 315.
+Package atveryend Info: Empty hook `AtVeryEndDocument' on input line 331.
+Package atveryend Info: Executing hook `AtEndAfterFileList' on input line 331.
 Package rerunfilecheck Info: File `report.out' has not changed.
 (rerunfilecheck)             Checksum: E0E1EDCF107A64C0A51202765145EC02.
  ) 
 Here is how much of TeX's memory you used:
- 21847 strings out of 492970
- 410800 string characters out of 6133938
- 541064 words of memory out of 5000000
- 25662 multiletter control sequences out of 15000+600000
- 554971 words of font info for 60 fonts, out of 8000000 for 9000
+ 21855 strings out of 492970
+ 411010 string characters out of 6133938
+ 542064 words of memory out of 5000000
+ 25666 multiletter control sequences out of 15000+600000
+ 554987 words of font info for 62 fonts, out of 8000000 for 9000
  1348 hyphenation exceptions out of 8191
- 45i,6n,68p,10447b,339s stack positions out of 5000i,500n,10000p,200000b,80000s
+ 45i,9n,68p,10447b,339s stack positions out of 5000i,500n,10000p,200000b,80000s
 
-Output written on report.pdf (6 pages).
+Output written on report.pdf (7 pages).
