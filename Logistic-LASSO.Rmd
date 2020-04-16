@@ -404,7 +404,7 @@ There were 569 images collected independently from patients, 212 of whom had mal
 
 ## Data cleaning 
 
-As shown in the pairwise correlation plot (\textbf{Figure 1}), we can observe the presence of some strong multicollinearity among the predictors. For instance, the radius_mean variable has almost perfect correlation of 1 and 0.99 with perimeter_mean and area_mean variables, respectively. We then decided to leave out variables that showed pairwise correlations of more than 85%. The final dataset contained 13 predictors. (\textbf{Figure 2}) shows the decreased amount of correlation between variables in this reduced dataset.
+As shown in the pairwise correlation plot \textbf{Figure 1}, we can observe the presence of some strong multicollinearity among the predictors. For instance, the radius_mean variable has almost perfect correlation of 1 and 0.99 with perimeter_mean and area_mean variables, respectively. We then decided to leave out variables that showed pairwise correlations of more than 85%. The final dataset contained 13 predictors. \textbf{Figure 2} shows the decreased amount of correlation between variables in this reduced dataset.
 
 Next, considering the LASSO is not scale-invariant, we standardized the design matrix. This is to ensure comparability of estimates by the logistic-LASSO model and Newton-Raphson/logistic regression model. The standardization formula is as follows:
 
@@ -471,13 +471,11 @@ Then, each $\beta_{i}$ is optimized using the folllowing equation:
 where $S(\hat\beta, \gamma)$ is called soft-threshold and is defined as $S(\hat{\beta}, \lambda) = sign(\hat{\beta})(|\hat{\beta}| - \lambda)_{+}$
 
 ## Results
-(\textbf{Table 1})
-The coefficient estimates can be found in (\textbf{Table 1}). Newton-Raphson algorithm gives quite similar estimates to those in the logistic regression model produced by GLM package. For the logistic-LASSO model, we can see the coefficient estimates are approximately close to the ones produced by GLMnet with 5-fold cross-validation. They do not exactly match, however, potentially due to some dissimilarities in the setup conditions during our implementation and theirs.
+The coefficient estimates can be found in \textbf{Table 1}. Newton-Raphson algorithm gives quite similar estimates to those in the logistic regression model produced by GLM package. For the logistic-LASSO model, we can see the coefficient estimates are approximately close to the ones produced by GLMnet with 5-fold cross-validation. They do not exactly match, however, potentially due to some dissimilarities in the setup conditions during our implementation and theirs.
 
-(\textbf{Figure 4})
-The path of solution could be found in (\textbf{Figure 3}), and the distribution of cross-validated MSEs produced by the hand-built logistic-LASSO model could be found in (\textbf{Figure 4}). Five-fold cross-validation suggested the best $\lambda$ is 0.0045, which corresponds to the lowest cross-validated MSE. A similar distribution of cross-validated MSEs produced by the GLMNet package in R can be found in (\textbf{Figure 5}). Here, 5-fold cross-validation suggested the best $\lambda$ is 0.0037. 
+The path of solution could be found in \textbf{Figure 3}, and the distribution of cross-validated MSEs produced by the hand-built logistic-LASSO model could be found in \textbf{Figure 4}. Five-fold cross-validation suggested the best $\lambda$ is 0.0045, which corresponds to the lowest cross-validated MSE. A similar distribution of cross-validated MSEs produced by the GLMNet package in R can be found in \textbf{Figure 5}. Here, 5-fold cross-validation suggested the best $\lambda$ is 0.0037. 
 
-Lastly, we wanted to compare the prediction performance using MSE as a criteria. We first compared the MSE obtained from fitting the models given the calculated coefficients on the whole dataset. The results are displayed in (\textbf{Table 2}). We then examined this under the 5-fold cross-validation condition applied to all models. The distributions of 5-fold cross-validated MSE can be found in (\textbf{Figure 6}). We noticed that the cross-validated MSE of both Newton-Raphson and logistic-LASSO are similarly distributed, although the latter seems to perform slightly less well. Nonetheless, the errors were all in close proximity with one another so we are confident they all offer good discriminatory power. 
+Lastly, we wanted to compare the prediction performance using MSE as a criteria. We first compared the MSE obtained from fitting the models given the calculated coefficients on the whole dataset. The results are displayed in \textbf{Table 2}. We then examined this under the 5-fold cross-validation condition applied to all models. The distributions of 5-fold cross-validated MSE can be found in \textbf{Figure 6}. We noticed that the cross-validated MSE of both Newton-Raphson and logistic-LASSO are similarly distributed, although the latter seems to perform slightly less well. Nonetheless, the errors were all in close proximity with one another so we are confident they all offer good discriminatory power. 
 
 ## Conclusions 
 
